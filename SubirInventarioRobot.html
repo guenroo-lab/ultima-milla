@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Robot Inventarios - listo</title>
+</head>
+<body style="font-family:Arial,sans-serif;text-align:center;padding-top:60px;">
+  <h2>Robot de inventarios</h2>
+  <p style="color:#666;font-size:14px">Sube todos los inventarios descargados de una vez.</p>
+  <label id="lblElegir" aria-label="ROBOT_SELECCIONAR_ARCHIVO"
+         style="display:inline-block;padding:14px 24px;background:#1a73e8;color:#fff;font-size:18px;border-radius:4px;cursor:pointer;">
+    Seleccionar archivo
+    <input type="file" id="archivo" accept=".xlsx,.xls" multiple style="display:none;">
+  </label>
+  <div id="estado" style="margin-top:24px;font-size:14px;color:#555;"></div>
+
+  <script>
+    var TOKEN = <?!= JSON.stringify(token) ?>;
+
+    // El código de tienda sale del propio nombre del archivo (036.xlsx → 036),
+    // que es como los guarda el robot -- así una sola pantalla puede subir
+    // los 4 inventarios de golpe sin saber de antemano cuáles vienen.
+    function codigoDe(nombre) {
+      var m = String(nombre).match(/(\d{3})\.xlsx?$/i);
+      return m ? m[1] : null;
+    }
+
+    document.getElementById('archivo').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      if (!files.length) return;
+      var estado = document.getElementById('estado');
+      var total = files.length;
+      var subidos = 0, errores = [];
+
+      // La señal de fin va en el TEXTO de la página, no en document.title:
+      // esta página corre dentro del iframe aislado de Apps Script, así que
+      // cambiar document.title NO cambia el título de la pestaña del
+      // navegador y el robot nunca llegaba a ver el resultado (daba timeout
+      // y reintentaba la subida en bucle aunque ya hubiera ido bien).
+      function terminar() {
+        if (errores.length) {
+          estado.textContent = 'ROBOT_FIN_ERROR: ' + errores.join(' · ');
+        } else {
+          estado.textContent = 'ROBOT_FIN_OK:' + subidos + '/' + total;
+        }
+      }
+
+      // Secuencial (no en paralelo) para no lanzar N escrituras simultáneas
+      // sobre la misma carpeta de Drive desde el mismo script.
+      function siguiente(i) {
+        if (i >= files.length) { terminar(); return; }
+        var f = files[i];
+        var codigo = codigoDe(f.name);
+        estado.textContent = 'Subiendo ' + f.name + ' (' + (i + 1) + '/' + total + ')...';
+        if (!codigo) {
+          errores.push(f.name + ': nombre sin código de tienda');
+          siguiente(i + 1);
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var base64 = reader.result.split(',')[1];
+          var ext = f.name.toLowerCase().lastIndexOf('.xlsx') > -1 ? 'xlsx' : 'xls';
+          google.script.run
+            .withSuccessHandler(function (resp) {
+              if (resp && resp.ok) subidos++;
+              else errores.push(codigo + ': ' + ((resp && resp.error) || 'error desconocido'));
+              siguiente(i + 1);
+            })
+            .withFailureHandler(function (err) {
+              errores.push(codigo + ': ' + err.message);
+              siguiente(i + 1);
+            })
+            .recibirInventarioRobot(TOKEN, codigo, base64, ext);
+        };
+        reader.readAsDataURL(f);
+      }
+      siguiente(0);
+    });
+  </script>
+</body>
+</html>

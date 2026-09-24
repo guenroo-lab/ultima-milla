@@ -1,0 +1,34 @@
+# Ignorar todo por defecto…
+**/**
+
+# …y subir SOLO los archivos reales del proyecto:
+!appsscript.json
+!Backend.gs
+!CargasTaisa.gs
+!Clasificador.html
+!Codigo.gs
+!Configuracion.gs
+!CorreoSegundasCargas.gs
+!Dashboard.html
+!EstructuraSheets.gs
+!ImportarClasificacion.gs
+!ImportarPyxis.gs
+!Index.html
+!Inventario.gs
+!MigracionFase2.gs
+!MigracionFase3Lote1.gs
+!MigracionFase3Lote2.gs
+!MigracionFase3Lote3.gs
+!MigracionFase3Lote4.gs
+!NotificacionesChat.gs
+!Pieza3Publico.gs
+!Pruebas.gs
+!PruebasLote1Staging.gs
+!PruebasLote2Staging.gs
+!PruebasLote3Staging.gs
+!PruebasLote4Staging.gs
+!SnapshotDiario.gs
+!SubirArchivo.gs
+!SubirArchivoRobot.html
+!SubirInventarioRobot.html
+!WebApp.gs

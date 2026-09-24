@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pantalla Almacén · LM Málaga</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080a10;--sur:#0f1220;--sur2:#161b2e;--sur3:#1e2438;
+  --red:#e30613;--cyan:#00c2ff;--gold:#f0b429;--grn:#22c55e;
+  --blu:#3498db;--ora:#fb923c;--pur:#a78bfa;
+  --tx:#f0f4ff;--tx2:#6b7899;--tx3:#3a4460;--bor:rgba(255,255,255,0.07);--bor2:rgba(255,255,255,0.14);
+  --t-mal:#6ee7b7;--t-mal-bg:rgba(110,231,183,0.13);
+  --t-mrb:#7dd3fc;--t-mrb-bg:rgba(125,211,252,0.13);
+  --t-mij:#c4b5fd;--t-mij-bg:rgba(196,181,253,0.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 85% -10%,rgba(227,6,19,0.07) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 5% 100%,rgba(0,194,255,0.04) 0%,transparent 55%);pointer-events:none;z-index:0}
+
+/* HEADER */
+.hdr{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:18px 32px;border-bottom:2px solid var(--bor);background:rgba(8,10,16,.6)}
+.hdr-left{display:flex;flex-direction:column;gap:10px}
+.hdr-logos{display:flex;align-items:center;gap:14px}
+.hdr-logo{background:#fff;color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;padding:4px 16px;border-radius:8px;font-weight:400}
+.hdr-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;line-height:1}
+.hdr-title .modo{color:var(--gold)}
+.hdr-title.tarde .modo{color:var(--cyan)}
+.hdr-sub{font-size:13px;color:var(--tx2);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.hdr-right{text-align:right}
+.hdr-clock{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:var(--tx);line-height:1}
+.hdr-date{font-size:13px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px}
+.hdr-pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--grn);margin-left:8px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* LAYOUT PRINCIPAL */
+.main{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px 32px;overflow:hidden}
+
+/* COLUMNA IZQUIERDA: KPIs + flujos */
+.col-left{display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.kpi-big{background:var(--sur);border:1px solid var(--bor);border-radius:16px;padding:20px 22px;position:relative;overflow:hidden}
+.kpi-big::before{content:'';position:absolute;top:0;left:0;bottom:0;width:5px}
+.kpi-big.hechos::before{background:var(--grn)}
+.kpi-big.curso::before{background:var(--gold)}
+.kpi-big.pend::before{background:var(--tx2)}
+.kpi-big-label{font-size:13px;color:var(--tx2);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+.kpi-big-val{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:1px;line-height:.95;margin-top:2px}
+.kpi-big.hechos .kpi-big-val{color:var(--grn)}
+.kpi-big.curso .kpi-big-val{color:var(--gold)}
+.kpi-big.pend .kpi-big-val{color:var(--tx)}
+.kpi-big-sub{font-size:13px;color:var(--tx2);margin-top:2px}
+
+.panel{background:var(--sur);border:1px solid var(--bor);border-radius:16px;padding:18px 20px;overflow:hidden;display:flex;flex-direction:column}
+.panel h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--tx2);margin-bottom:14px;flex-shrink:0}
+
+/* PROGRESO GLOBAL CIRCULAR */
+.global-prog{display:flex;align-items:center;gap:20px}
+.gp-circle{position:relative;width:120px;height:120px;flex-shrink:0}
+.gp-circle svg{transform:rotate(-90deg)}
+.gp-circle .gp-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gp-circle .gp-pct{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--grn)}
+.gp-circle .gp-lbl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px}
+.gp-flujos{flex:1;display:flex;flex-direction:column;gap:9px}
+.gp-flujo-row{display:flex;align-items:center;gap:10px}
+.gp-flujo-lbl{font-size:12px;font-weight:700;width:90px;text-transform:uppercase;letter-spacing:.5px}
+.gp-flujo-bar{flex:1;height:9px;background:var(--sur3);border-radius:5px;overflow:hidden}
+.gp-flujo-bar>div{height:100%;border-radius:5px;transition:width .5s}
+.gp-flujo-num{font-size:12px;color:var(--tx2);width:50px;text-align:right;font-weight:600}
+
+/* COLUMNA DERECHA: siluetas */
+.col-right{display:flex;flex-direction:column;overflow:hidden}
+.siluetas-wrap{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:10px;overflow:hidden}
+.sil-box{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;overflow:hidden}
+.sil-box-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-shrink:0}
+.sil-box-h .letra{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;color:var(--cyan);line-height:1}
+.sil-box-h .ocup{font-size:12px;color:var(--tx2);font-weight:600}
+.sil-box-h .ocup b{color:var(--tx);font-family:'Bebas Neue',sans-serif;font-size:15px}
+.sil-rows{flex:1;display:flex;flex-direction:column;gap:4px;justify-content:center}
+.sil-row{display:grid;grid-template-columns:repeat(16,1fr);gap:3px;flex:1;max-height:38px}
+.cell{border:1px solid var(--bor);border-radius:4px;background:var(--sur2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.5px;color:var(--tx3);position:relative;overflow:hidden}
+.cell.tienda-Málaga{background:var(--t-mal-bg);border-color:var(--t-mal);color:var(--t-mal)}
+.cell.tienda-Marbella{background:var(--t-mrb-bg);border-color:var(--t-mrb);color:var(--t-mrb)}
+.cell.tienda-Mijas{background:var(--t-mij-bg);border-color:var(--t-mij);color:var(--t-mij)}
+.cell.reservado{background:repeating-linear-gradient(45deg,rgba(255,255,255,.04),rgba(255,255,255,.04) 3px,transparent 3px,transparent 6px);color:var(--tx3)}
+
+/* MAÑANA: panel grande de carga */
+.carga-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.carga-list{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+.carga-item{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--sur2);border:1px solid var(--bor);border-radius:12px;font-size:16px}
+.carga-item .estado-ico{font-size:24px;width:32px;text-align:center;flex-shrink:0}
+.carga-item .ped{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;min-width:90px}
+.carga-item .tienda-chip{font-size:12px;font-weight:700;padding:3px 12px;border-radius:12px}
+.tienda-chip.tienda-Málaga{background:var(--t-mal-bg);color:var(--t-mal)}
+.tienda-chip.tienda-Marbella{background:var(--t-mrb-bg);color:var(--t-mrb)}
+.tienda-chip.tienda-Mijas{background:var(--t-mij-bg);color:var(--t-mij)}
+.carga-item .sil{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--cyan);margin-left:auto;letter-spacing:1px}
+.carga-item.entregado{opacity:.5}
+
+/* LEYENDA inferior */
+.footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:12px 32px;border-top:1px solid var(--bor);font-size:12px;color:var(--tx2);background:rgba(8,10,16,.6)}
+.legend{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px}
+.legend i{width:13px;height:13px;border-radius:3px;display:inline-block}
+.legend b.letra{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--tx)}
+.modo-toggle{display:flex;gap:6px}
+.modo-toggle button{padding:5px 12px;border-radius:8px;border:1px solid var(--bor);background:var(--sur2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.5px}
+.modo-toggle button.on{border-color:var(--cyan);color:var(--cyan);background:rgba(0,194,255,.1)}
+
+.empty{text-align:center;padding:40px;color:var(--tx3);font-style:italic;font-size:16px}
+
+/* LOGOS HEADER */
+.hdr-taisa{height:54px;background:#fff;border-radius:10px;padding:7px 16px;display:flex;align-items:center}
+.hdr-taisa img{height:40px;width:auto;display:block}
+
+/* CÍRCULOS GRANDES DE FLUJO (modo tarde) */
+.flujo-circles{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-content:center}
+.fc{background:var(--sur);border:1px solid var(--bor);border-radius:18px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden}
+.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.fc.transporte::before{background:var(--blu)}
+.fc.instalacion::before{background:var(--ora)}
+.fc.pro::before{background:var(--pur)}
+.fc.remansur_transporte::before{background:var(--cyan)}
+.fc.remansur_pro::before{background:linear-gradient(90deg,var(--cyan),var(--pur))}
+.fc-ring{position:relative;width:130px;height:130px}
+.fc-ring svg{transform:rotate(-90deg)}
+.fc-ring .fc-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.fc-ring .fc-pct{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:.9;color:var(--tx)}
+.fc-ring .fc-frac{font-size:13px;color:var(--tx2);font-weight:600;margin-top:2px}
+.fc-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-top:12px;text-transform:uppercase}
+.fc.transporte .fc-name{color:var(--blu)}
+.fc.instalacion .fc-name{color:var(--ora)}
+.fc.pro .fc-name{color:var(--pur)}
+.fc.remansur_transporte .fc-name{color:var(--cyan)}
+.fc.remansur_pro .fc-name{color:var(--pur)}
+.fc-detail{display:flex;gap:12px;margin-top:8px;font-size:12px;color:var(--tx2)}
+.fc-detail b{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px}
+.fc-detail .d-listo b{color:var(--grn)}
+.fc-detail .d-curso b{color:var(--gold)}
+.fc-detail .d-pend b{color:var(--tx2)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logos">
+      <div class="hdr-taisa"><img src="data:image/png;base64,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" alt="Taisa Logistics"></div>
+    </div>
+    <div>
+      <div class="hdr-title" id="hdrTitle">PREPARACIÓN <span class="modo" id="hdrModo">· TARDE</span></div>
+      <div class="hdr-sub">Plataforma Málaga · Última milla</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-clock" id="clock">--:--<span class="hdr-pulse"></span></div>
+    <div class="hdr-date" id="date">—</div>
+  </div>
+</div>
+
+<div class="main" id="main"></div>
+
+<div class="footer">
+  <div class="legend" id="legend"></div>
+  <div class="modo-toggle">
+    <button id="btnAuto" class="on" onclick="setModo('auto')">🕐 Auto</button>
+    <button id="btnManana" onclick="setModo('manana')">🌅 Mañana</button>
+    <button id="btnTarde" onclick="setModo('tarde')">🌙 Tarde</button>
+  </div>
+</div>
+
+<script>
+// ====== DATOS DEMO (en producción vienen de Apps Script) ======
+const TIENDAS = ['Málaga','Marbella','Mijas'];
+const SILUETAS = ['A','B','C','D','E','F','G'];
+const POSICIONES = 16;
+const FLUJO_LETRA = { transporte:'T', instalacion:'I', pro:'P', remansur_transporte:'R', remansur_pro:'R+' };
+
+// Pedidos en preparación (tarde)
+const PEDIDOS = [
+  { ped:'942687', tienda:'Málaga',   flujo:'transporte',  estado:'EN_PREPARACION', pct:66 },
+  { ped:'942701', tienda:'Málaga',   flujo:'transporte',  estado:'LISTO',          pct:100 },
+  { ped:'942715', tienda:'Málaga',   flujo:'instalacion', estado:'EN_PREPARACION', pct:50 },
+  { ped:'942720', tienda:'Málaga',   flujo:'transporte',  estado:'PENDIENTE',      pct:0 },
+  { ped:'274744', tienda:'Marbella', flujo:'remansur_transporte', estado:'LISTO',  pct:100 },
+  { ped:'274751', tienda:'Marbella', flujo:'remansur_transporte', estado:'EN_PREPARACION', pct:40 },
+  { ped:'274760', tienda:'Marbella', flujo:'transporte',  estado:'PENDIENTE',      pct:0 },
+  { ped:'274758', tienda:'Marbella', flujo:'remansur_pro', estado:'LISTO',         pct:100 },
+  { ped:'272702', tienda:'Mijas',    flujo:'transporte',  estado:'EN_PREPARACION', pct:33 },
+  { ped:'272691', tienda:'Mijas',    flujo:'pro',         estado:'PENDIENTE',      pct:0 },
+  { ped:'272710', tienda:'Mijas',    flujo:'remansur_pro', estado:'LISTO',         pct:100 }
+];
+
+// Ocupación de siluetas (lo que ya está colocado)
+const OCUPACION = [
+  { silueta:'A', pos:1, layer:'back',  ped:'941500', tienda:'Málaga',   flujo:'transporte' },
+  { silueta:'A', pos:1, layer:'front', ped:'941500', tienda:'Málaga',   flujo:'transporte' },
+  { silueta:'A', pos:2, layer:'back',  ped:'941500', tienda:'Málaga',   flujo:'transporte' },
+  { silueta:'A', pos:2, layer:'front', ped:'941500', tienda:'Málaga',   flujo:'transporte', reservado:true },
+  { silueta:'A', pos:3, layer:'back',  ped:'274600', tienda:'Marbella', flujo:'remansur_transporte' },
+  { silueta:'A', pos:3, layer:'front', ped:'274600', tienda:'Marbella', flujo:'remansur_transporte' },
+  { silueta:'A', pos:4, layer:'back',  ped:'274600', tienda:'Marbella', flujo:'remansur_transporte' },
+  { silueta:'A', pos:4, layer:'front', ped:'274600', tienda:'Marbella', flujo:'remansur_transporte' },
+  { silueta:'C', pos:1, layer:'back',  ped:'942600', tienda:'Málaga',   flujo:'instalacion' },
+  { silueta:'C', pos:1, layer:'front', ped:'942600', tienda:'Málaga',   flujo:'instalacion' },
+  { silueta:'C', pos:2, layer:'back',  ped:'942600', tienda:'Málaga',   flujo:'instalacion' },
+  { silueta:'C', pos:2, layer:'front', ped:'942600', tienda:'Málaga',   flujo:'instalacion' },
+  { silueta:'C', pos:3, layer:'back',  ped:'942600', tienda:'Málaga',   flujo:'instalacion' },
+  { silueta:'C', pos:3, layer:'front', ped:'942600', tienda:'Málaga',   flujo:'instalacion' },
+  { silueta:'D', pos:1, layer:'back',  ped:'272500', tienda:'Mijas',    flujo:'pro' },
+  { silueta:'D', pos:1, layer:'front', ped:'272500', tienda:'Mijas',    flujo:'pro' },
+  { silueta:'F', pos:1, layer:'back',  ped:'274758', tienda:'Marbella', flujo:'remansur_pro' },
+  { silueta:'F', pos:1, layer:'front', ped:'274758', tienda:'Marbella', flujo:'remansur_pro' },
+  { silueta:'F', pos:2, layer:'back',  ped:'274758', tienda:'Marbella', flujo:'remansur_pro' }
+];
+
+// Carga de la mañana (extracción)
+const CARGA = {
+  numCarga: 1,
+  items: [
+    { ped:'941500', tienda:'Málaga',   flujo:'transporte',          silueta:'A', posIni:1, posFin:2, estado:'ENTREGADO' },
+    { ped:'274600', tienda:'Marbella', flujo:'remansur_transporte', silueta:'A', posIni:3, posFin:4, estado:'ENTREGADO' },
+    { ped:'942600', tienda:'Málaga',   flujo:'instalacion',         silueta:'C', posIni:1, posFin:3, estado:'PENDIENTE' },
+    { ped:'272500', tienda:'Mijas',    flujo:'pro',                 silueta:'D', posIni:1, posFin:1, estado:'PENDIENTE' }
+  ]
+};
+
+// ====== ESTADO ======
+let modoForzado = 'auto'; // auto | manana | tarde
+
+function modoActual() {
+  if (modoForzado !== 'auto') return modoForzado;
+  const h = new Date().getHours();
+  return h < 14 ? 'manana' : 'tarde';
+}
+function setModo(m) {
+  modoForzado = m;
+  document.getElementById('btnAuto').classList.toggle('on', m==='auto');
+  document.getElementById('btnManana').classList.toggle('on', m==='manana');
+  document.getElementById('btnTarde').classList.toggle('on', m==='tarde');
+  render();
+}
+
+// ====== RELOJ ======
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').innerHTML = n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) + '<span class="hdr-pulse"></span>';
+  document.getElementById('date').textContent = n.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
+}
+setInterval(tick, 1000); tick();
+
+// ====== RENDER ======
+function render() {
+  const modo = modoActual();
+  const title = document.getElementById('hdrTitle');
+  const hdrModo = document.getElementById('hdrModo');
+  if (modo === 'manana') {
+    title.classList.remove('tarde');
+    title.childNodes[0].nodeValue = 'CARGA ';
+    hdrModo.textContent = '· MAÑANA';
+    renderManana();
+  } else {
+    title.classList.add('tarde');
+    title.childNodes[0].nodeValue = 'PREPARACIÓN ';
+    hdrModo.textContent = '· TARDE';
+    renderTarde();
+  }
+  renderLegend();
+}
+
+function ocupMap() {
+  const m = {};
+  OCUPACION.forEach(o => {
+    if (!m[o.silueta]) m[o.silueta] = {};
+    if (!m[o.silueta][o.pos]) m[o.silueta][o.pos] = {};
+    m[o.silueta][o.pos][o.layer] = o;
+  });
+  return m;
+}
+
+function siluetasHTML() {
+  const om = ocupMap();
+  let html = '<div class="siluetas-wrap">';
+  SILUETAS.forEach(s => {
+    const sil = om[s] || {};
+    const traseras = Object.keys(sil).filter(p => sil[p].back).length;
+    let front = '', back = '';
+    for (let p = 1; p <= POSICIONES; p++) {
+      const cell = sil[p] || {};
+      const b = cell.back, f = cell.front;
+      const cB = b ? 'tienda-'+b.tienda : '';
+      const cF = f ? (f.reservado ? 'reservado' : 'tienda-'+f.tienda) : '';
+      const tB = b ? (FLUJO_LETRA[b.flujo]||'') : '';
+      const tF = f ? (f.reservado ? '·' : (FLUJO_LETRA[f.flujo]||'')) : '';
+      front += `<div class="cell ${cF}">${tF}</div>`;
+      back  += `<div class="cell ${cB}">${tB}</div>`;
+    }
+    html += `<div class="sil-box">
+      <div class="sil-box-h"><span class="letra">${s}</span><span class="ocup"><b>${traseras}</b>/${POSICIONES}</span></div>
+      <div class="sil-rows">
+        <div class="sil-row">${front}</div>
+        <div class="sil-row">${back}</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderTarde() {
+  const total = PEDIDOS.length;
+  const listos = PEDIDOS.filter(p => p.estado === 'LISTO').length;
+  const curso = PEDIDOS.filter(p => p.estado === 'EN_PREPARACION').length;
+  const pend = PEDIDOS.filter(p => p.estado === 'PENDIENTE').length;
+  const pctGlobal = Math.round(listos*100/total);
+
+  const flujos = [
+    { id:'transporte',          nombre:'Transporte',  color:'#3498db' },
+    { id:'instalacion',         nombre:'Instalación', color:'#fb923c' },
+    { id:'pro',                 nombre:'PRO',         color:'#a78bfa' },
+    { id:'remansur_transporte', nombre:'Remansur',    color:'#00c2ff' },
+    { id:'remansur_pro',        nombre:'Remansur PRO',color:'#a78bfa' }
+  ];
+
+  function ring(pct, color, size, sw) {
+    const r = (size/2) - sw;
+    const c = 2*Math.PI*r;
+    const dash = c*pct/100;
+    return `<svg width="${size}" height="${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--sur3)" stroke-width="${sw}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${c}"/>
+    </svg>`;
+  }
+
+  // Círculos por flujo (solo los que tienen pedidos)
+  let circlesHTML = '';
+  flujos.forEach(f => {
+    const fps = PEDIDOS.filter(p => p.flujo === f.id);
+    if (!fps.length) return;
+    const fl = fps.filter(p => p.estado === 'LISTO').length;
+    const fc = fps.filter(p => p.estado === 'EN_PREPARACION').length;
+    const fpd = fps.filter(p => p.estado === 'PENDIENTE').length;
+    const fp = Math.round(fl*100/fps.length);
+    circlesHTML += `<div class="fc ${f.id}">
+      <div class="fc-ring">
+        ${ring(fp, f.color, 130, 11)}
+        <div class="fc-center"><span class="fc-pct">${fp}%</span><span class="fc-frac">${fl}/${fps.length}</span></div>
+      </div>
+      <div class="fc-name">${f.nombre}</div>
+      <div class="fc-detail">
+        <span class="d-listo">✓<b>${fl}</b></span>
+        <span class="d-curso">⏳<b>${fc}</b></span>
+        <span class="d-pend">○<b>${fpd}</b></span>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('main').innerHTML = `
+    <div class="col-left">
+      <div class="kpi-big hechos"><div class="kpi-big-label">Listos para silueta</div><div class="kpi-big-val">${listos}</div><div class="kpi-big-sub">de ${total} pedidos</div></div>
+      <div class="kpi-big curso"><div class="kpi-big-label">En preparación</div><div class="kpi-big-val">${curso}</div></div>
+      <div class="kpi-big pend"><div class="kpi-big-label">Pendientes</div><div class="kpi-big-val">${pend}</div></div>
+      <div class="panel" style="flex:1;align-items:center;justify-content:center">
+        <div class="gp-circle" style="width:170px;height:170px">
+          <svg width="170" height="170">
+            <circle cx="85" cy="85" r="72" fill="none" stroke="var(--sur3)" stroke-width="14"/>
+            <circle cx="85" cy="85" r="72" fill="none" stroke="var(--grn)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${2*Math.PI*72*pctGlobal/100} ${2*Math.PI*72}" transform="rotate(-90 85 85)"/>
+          </svg>
+          <div class="gp-txt"><span class="gp-pct" style="font-size:54px">${pctGlobal}%</span><span class="gp-lbl">Progreso global</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--tx2);margin-bottom:12px">Avance por tipo de transporte</h2>
+      <div class="flujo-circles">${circlesHTML}</div>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--tx2);margin:16px 0 10px">Ocupación de siluetas</h2>
+      ${siluetasHTML()}
+    </div>
+  `;
+}
+
+function renderManana() {
+  const total = CARGA.items.length;
+  const entregados = CARGA.items.filter(i => i.estado === 'ENTREGADO').length;
+  const pend = total - entregados;
+  const pct = Math.round(entregados*100/total);
+
+  let itemsHTML = CARGA.items.map(item => {
+    const ico = item.estado === 'ENTREGADO' ? '✅' : '📦';
+    const pos = item.posIni === item.posFin ? item.posIni : item.posIni+'–'+item.posFin;
+    return `<div class="carga-item ${item.estado==='ENTREGADO'?'entregado':''}">
+      <span class="estado-ico">${ico}</span>
+      <span class="ped">${item.ped}</span>
+      <span class="tienda-chip tienda-${item.tienda}">${item.tienda}</span>
+      <span class="sil">${item.silueta}${pos}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('main').innerHTML = `
+    <div class="col-left">
+      <div class="kpi-big hechos"><div class="kpi-big-label">Entregados</div><div class="kpi-big-val">${entregados}</div><div class="kpi-big-sub">de ${total} en carga ${CARGA.numCarga}</div></div>
+      <div class="kpi-big pend"><div class="kpi-big-label">Por entregar</div><div class="kpi-big-val">${pend}</div></div>
+      <div class="panel" style="flex:1">
+        <h2>Progreso de carga</h2>
+        <div class="global-prog">
+          <div class="gp-circle">
+            <svg width="120" height="120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--sur3)" stroke-width="11"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--gold)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${2*Math.PI*52*pct/100} ${2*Math.PI*52}"/>
+            </svg>
+            <div class="gp-txt"><span class="gp-pct" style="color:var(--gold)">${pct}%</span><span class="gp-lbl">Carga ${CARGA.numCarga}</span></div>
+          </div>
+          <div style="flex:1;font-size:14px;color:var(--tx2);line-height:1.8">
+            Extracción de mañana en curso.<br>
+            Los pedidos no entregados pasarán a <b style="color:var(--gold)">Carga 2</b>.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <div class="carga-panel">
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--tx2);margin-bottom:12px">Pedidos en carga ${CARGA.numCarga}</h2>
+        <div class="carga-list">${itemsHTML || '<div class="empty">Sin carga activa</div>'}</div>
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--tx2);margin:16px 0 10px">Siluetas restantes</h2>
+        ${siluetasMiniHTML()}
+      </div>
+    </div>
+  `;
+}
+
+function siluetasMiniHTML() {
+  const om = ocupMap();
+  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px">';
+  SILUETAS.forEach(s => {
+    const sil = om[s] || {};
+    const traseras = Object.keys(sil).filter(p => sil[p].back).length;
+    const llena = traseras > 0;
+    html += `<div style="background:var(--sur2);border:1px solid ${llena?'var(--cyan)':'var(--bor)'};border-radius:10px;padding:10px;text-align:center">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:${llena?'var(--cyan)':'var(--tx3)'};letter-spacing:1px">${s}</div>
+      <div style="font-size:11px;color:var(--tx2);margin-top:2px">${traseras}/${POSICIONES}</div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML = `
+    <span style="font-weight:700;letter-spacing:.5px">TIENDA:</span>
+    <span><i style="background:var(--t-mal-bg);border:1px solid var(--t-mal)"></i>Málaga</span>
+    <span><i style="background:var(--t-mrb-bg);border:1px solid var(--t-mrb)"></i>Marbella</span>
+    <span><i style="background:var(--t-mij-bg);border:1px solid var(--t-mij)"></i>Mijas</span>
+    <span style="margin-left:14px;font-weight:700;letter-spacing:.5px">FLUJO:</span>
+    <span><b class="letra">T</b>Transporte</span>
+    <span><b class="letra">I</b>Instalación</span>
+    <span><b class="letra">P</b>PRO</span>
+    <span><b class="letra">R</b>Remansur</span>
+    <span><b class="letra">R+</b>Rem.PRO</span>
+  `;
+}
+
+render();
+setInterval(render, 10000); // refresco cada 10s
+</script>
+</body>
+</html>

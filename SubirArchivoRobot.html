@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Robot Archivos - listo</title>
+</head>
+<body style="font-family:Arial,sans-serif;text-align:center;padding-top:60px;">
+  <h2>Robot de archivos</h2>
+  <p style="color:#666;font-size:14px">Sube todos los archivos seleccionados a la carpeta configurada.</p>
+  <label id="lblElegir" aria-label="ROBOT_SELECCIONAR_ARCHIVO"
+         style="display:inline-block;padding:14px 24px;background:#1a73e8;color:#fff;font-size:18px;border-radius:4px;cursor:pointer;">
+    Seleccionar archivo
+    <input type="file" id="archivo" multiple style="display:none;">
+  </label>
+  <div id="estado" style="margin-top:24px;font-size:14px;color:#555;"></div>
+
+  <script>
+    var TOKEN = <?!= JSON.stringify(token) ?>;
+    var DESTINO = <?!= JSON.stringify(destino) ?>;
+
+    function mimeDe(nombre) {
+      var n = nombre.toLowerCase();
+      if (n.slice(-5) === '.xlsx') return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      if (n.slice(-4) === '.csv') return 'text/csv';
+      return 'application/octet-stream';
+    }
+
+    document.getElementById('archivo').addEventListener('change', function (e) {
+      var files = Array.prototype.slice.call(e.target.files || []);
+      if (!files.length) return;
+      var estado = document.getElementById('estado');
+      var total = files.length;
+      var subidos = 0, errores = [];
+
+      // Igual que en SubirInventarioRobot.html: la senal de fin va en el
+      // TEXTO de la pagina (no en document.title), porque esta pagina corre
+      // dentro del iframe aislado de Apps Script.
+      function terminar() {
+        if (errores.length) {
+          estado.textContent = 'ROBOT_FIN_ERROR: ' + errores.join(' · ');
+        } else {
+          estado.textContent = 'ROBOT_FIN_OK:' + subidos + '/' + total;
+        }
+      }
+
+      function siguiente(i) {
+        if (i >= files.length) { terminar(); return; }
+        var f = files[i];
+        // Si el robot manda un ".gz" (CSV grandes -- HISTORICO, ya no lo usa
+        // TOM2), el nombre final en Drive es sin ".gz" y se avisa al
+        // servidor para que descomprima.
+        // Si el robot manda "...csv.part2of4" (CSV MUY grandes, TOM2 ahora),
+        // el nombre final es sin ese sufijo y se avisa parte/totalPartes
+        // para que el servidor lo anexe al archivo en vez de reemplazarlo.
+        var esGzip = /\.gz$/i.test(f.name);
+        var matchParte = f.name.match(/\.part(\d+)of(\d+)$/i);
+        var nombreFinal = f.name;
+        if (esGzip) nombreFinal = nombreFinal.replace(/\.gz$/i, '');
+        if (matchParte) nombreFinal = nombreFinal.replace(/\.part\d+of\d+$/i, '');
+        var parte = matchParte ? parseInt(matchParte[1], 10) : null;
+        var totalPartes = matchParte ? parseInt(matchParte[2], 10) : null;
+        estado.textContent = 'Subiendo ' + nombreFinal + (matchParte ? ' (trozo ' + parte + '/' + totalPartes + ')' : '') + ' (' + (i + 1) + '/' + total + ')...';
+        var reader = new FileReader();
+        reader.onload = function () {
+          var base64 = reader.result.split(',')[1];
+          google.script.run
+            .withSuccessHandler(function (resp) {
+              if (resp && resp.ok) subidos++;
+              else errores.push(nombreFinal + ': ' + ((resp && resp.error) || 'error desconocido'));
+              siguiente(i + 1);
+            })
+            .withFailureHandler(function (err) {
+              errores.push(nombreFinal + ': ' + err.message);
+              siguiente(i + 1);
+            })
+            .recibirArchivoRobot(TOKEN, DESTINO, nombreFinal, base64, mimeDe(nombreFinal), esGzip, parte, totalPartes);
+        };
+        reader.readAsDataURL(f);
+      }
+      siguiente(0);
+    });
+  </script>
+</body>
+</html>

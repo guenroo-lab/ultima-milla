@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pantalla Almacén · LM Málaga</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080a10;--sur:#0f1220;--sur2:#161b2e;--sur3:#1e2438;
+  --red:#e8102a;--cyan:#12cbff;--gold:#f4b93a;--grn:#2ed673;
+  --blu:#4aa3e8;--ora:#ff9d54;--pur:#b291fc;
+  --tx:#f4f7ff;--tx2:#8592b8;--tx3:#48537a;--bor:rgba(255,255,255,0.1);--bor2:rgba(255,255,255,0.18);
+  --t-mal:#6ee7b7;--t-mal-bg:rgba(110,231,183,0.13);
+  --t-mrb:#7dd3fc;--t-mrb-bg:rgba(125,211,252,0.13);
+  --t-mij:#c4b5fd;--t-mij-bg:rgba(196,181,253,0.13);
+}
+/* === TEMA CLARO === */
+:root[data-tema="claro"]{
+  --bg:#eef1f7;--sur:#ffffff;--sur2:#f3f5fa;--sur3:#dde3ee;
+  --red:#e30613;--cyan:#0090c2;--gold:#b8810a;--grn:#0f8a45;
+  --blu:#2e7fc4;--ora:#d05a0d;--pur:#7c4fe0;
+  --tx:#101c29;--tx2:#4d5f7a;--tx3:#8a97ad;--bor:rgba(18,28,50,0.16);--bor2:rgba(18,28,50,0.26);
+  --t-mal:#0f9d63;--t-mal-bg:rgba(15,157,99,0.10);
+  --t-mrb:#0284c7;--t-mrb-bg:rgba(2,132,199,0.10);
+  --t-mij:#7c3aed;--t-mij-bg:rgba(124,58,237,0.10);
+}
+/* === TEMA VIVO: base oscura con acentos neón === */
+:root[data-tema="vivo"]{
+  --bg:#0d0221;--sur:#1a0b3d;--sur2:#24124f;--sur3:#301a63;
+  --red:#ff2d6a;--cyan:#1af3ff;--gold:#ffdc3d;--grn:#1af0a0;
+  --blu:#628fff;--ora:#ff7d4d;--pur:#d091ff;
+  --tx:#fdfbff;--tx2:#b7adda;--tx3:#7a6cab;--bor:rgba(199,157,255,0.18);--bor2:rgba(199,157,255,0.28);
+  --t-mal:#39ffb0;--t-mal-bg:rgba(57,255,176,0.14);
+  --t-mrb:#38bdf8;--t-mrb-bg:rgba(56,189,248,0.14);
+  --t-mij:#e0aaff;--t-mij-bg:rgba(224,170,255,0.14);
+}
+.tema-toggle{background:var(--sur2);border:1px solid var(--bor2);color:var(--tx);font-size:16px;width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;margin-left:12px;transition:border-color .15s}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;height:100vh;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 85% -10%,rgba(227,6,19,0.07) 0%,transparent 60%),radial-gradient(ellipse 50% 50% at 5% 100%,rgba(0,194,255,0.04) 0%,transparent 55%);pointer-events:none;z-index:0}
+
+.hdr{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:18px 32px;border-bottom:2px solid var(--bor);background:rgba(8,10,16,.6)}
+.hdr-left{display:flex;flex-direction:column;gap:10px}
+.hdr-logos{display:flex;align-items:center;gap:14px}
+.hdr-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:3px;line-height:1}
+.hdr-title .modo{color:var(--gold)}
+.hdr-title.tarde .modo{color:var(--cyan)}
+.hdr-sub{font-size:13px;color:var(--tx2);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.hdr-right{text-align:right}
+.hdr-clock{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;color:var(--tx);line-height:1}
+.hdr-date{font-size:13px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px}
+.hdr-pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--grn);margin-left:8px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.main{position:relative;z-index:1;flex:1;display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px 32px;overflow:hidden}
+
+.col-left{display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.kpi-big{background:var(--sur);border:1px solid var(--bor);border-radius:16px;padding:20px 22px;position:relative;overflow:hidden}
+.kpi-big::before{content:'';position:absolute;top:0;left:0;bottom:0;width:5px}
+.kpi-big.hechos::before{background:var(--grn)}
+.kpi-big.curso::before{background:var(--gold)}
+.kpi-big.pend::before{background:var(--tx2)}
+.kpi-big-label{font-size:13px;color:var(--tx2);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+.kpi-big-val{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:1px;line-height:.95;margin-top:2px}
+.kpi-big.hechos .kpi-big-val{color:var(--grn)}
+.kpi-big.curso .kpi-big-val{color:var(--gold)}
+.kpi-big.pend .kpi-big-val{color:var(--tx)}
+.kpi-big-sub{font-size:13px;color:var(--tx2);margin-top:2px}
+
+#alertaCargaBanner{margin:0 32px 14px;background:rgba(227,6,19,.16);border:2px solid var(--red);border-radius:14px;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;animation:alertaPulse 1.6s infinite;flex-shrink:0}
+#alertaCargaBanner .aab-tit{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#fff;flex-shrink:0}
+#alertaCargaBanner .aab-det{font-size:14px;color:var(--tx2)}
+#alertaCargaBanner .aab-det b{color:var(--gold)}
+@keyframes alertaPulse{0%,100%{box-shadow:0 0 0 rgba(227,6,19,0)}50%{box-shadow:0 0 30px rgba(227,6,19,.55)}}
+
+.panel{background:var(--sur);border:1px solid var(--bor);border-radius:16px;padding:18px 20px;overflow:hidden;display:flex;flex-direction:column}
+.panel h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--tx2);margin-bottom:14px;flex-shrink:0}
+
+.global-prog{display:flex;align-items:center;gap:20px}
+.gp-circle{position:relative;width:120px;height:120px;flex-shrink:0}
+.gp-circle svg{transform:rotate(-90deg)}
+.gp-circle .gp-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gp-circle .gp-pct{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--grn)}
+.gp-circle .gp-lbl{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px}
+
+.col-right{display:flex;flex-direction:column;overflow:hidden}
+/* Tarde reutiliza siluetasGrandeHTML() (números de pedido, siluetas vacías
+   colapsadas) -- ver esa función más abajo para el detalle de clases .sgr-*. */
+
+/* Siluetas GRANDES con número de pedido dentro (pantalla de carga · mañana).
+   --sgr-font la calcula JS (ajustarTamanoCeldasSil) según el hueco real de cada
+   casilla, para que el número siempre salga lo más grande posible sin desbordar. */
+.sil-grande{flex:1;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.sgr-row{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:8px;flex:1}
+.sgr-letra-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;width:36px;flex-shrink:0}
+.sgr-letra{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--cyan);line-height:1}
+.sgr-ocup{font-size:9px;color:var(--tx2);margin-top:1px;text-align:center;font-weight:600}
+.sgr-grid{flex:1;display:flex;flex-direction:column;gap:3px;height:100%;justify-content:center;min-height:0}
+.sgr-line{display:grid;grid-template-columns:repeat(16,1fr);grid-auto-rows:1fr;gap:3px;flex:1;min-height:0}
+.sgr-cell{border:1px solid var(--bor);border-radius:5px;background:var(--sur2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:var(--sgr-font,13px);letter-spacing:.2px;color:var(--tx3);overflow:hidden;white-space:nowrap;min-width:0;min-height:0;line-height:1;padding:0 1px}
+.sgr-cell.tienda-Málaga{background:var(--t-mal-bg);border-color:var(--t-mal);color:var(--t-mal)}
+.sgr-cell.tienda-Marbella{background:var(--t-mrb-bg);border-color:var(--t-mrb);color:var(--t-mrb)}
+.sgr-cell.tienda-Mijas{background:var(--t-mij-bg);border-color:var(--t-mij);color:var(--t-mij)}
+.sgr-cell.reservado{background:repeating-linear-gradient(45deg,rgba(255,255,255,.04),rgba(255,255,255,.04) 3px,transparent 3px,transparent 6px);color:var(--tx3)}
+.sgr-cell.cargando{border-width:2px;font-weight:700;animation:sgrPulse 1.1s ease-in-out infinite alternate}
+@keyframes sgrPulse{from{filter:brightness(1)}to{filter:brightness(1.5)}}
+/* Pedido que ya rebotó de una carga anterior (intentoCarga>=2, pendiente de
+   2ª/3ª carga): borde discontinuo dorado. No cabe una insignia con número en
+   celdas tan pequeñas (siluetas de 27 posiciones) — solo el borde distingue. */
+.sgr-cell.rebote{border-style:dashed;border-width:2px;border-color:var(--gold)}
+.sgr-extra{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.sgr-extra-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:6px 10px;max-height:64px;overflow-y:auto}
+.sgr-extra-lbl{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--gold);letter-spacing:1px;margin-right:4px;flex-shrink:0}
+.extra-chip{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.3px;padding:3px 9px;border-radius:6px;border:1px solid var(--bor);background:var(--sur2);color:var(--tx3);white-space:nowrap}
+.extra-chip b{margin-left:4px;font-weight:400;opacity:.75}
+.extra-chip.tienda-Málaga{background:var(--t-mal-bg);border-color:var(--t-mal);color:var(--t-mal)}
+.extra-chip.tienda-Marbella{background:var(--t-mrb-bg);border-color:var(--t-mrb);color:var(--t-mrb)}
+.extra-chip.tienda-Mijas{background:var(--t-mij-bg);border-color:var(--t-mij);color:var(--t-mij)}
+.cargas-legend{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.cargas-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2)}
+.cargas-legend-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0}
+.cargas-legend-item b{color:var(--tx);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px}
+
+.footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:12px 32px;border-top:1px solid var(--bor);font-size:12px;color:var(--tx2);background:rgba(8,10,16,.6)}
+.legend{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px}
+.legend i{width:13px;height:13px;border-radius:3px;display:inline-block}
+.legend b.letra{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--tx)}
+.modo-toggle{display:flex;gap:6px}
+.modo-toggle button{padding:5px 12px;border-radius:8px;border:1px solid var(--bor);background:var(--sur2);color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.5px}
+.modo-toggle button.on{border-color:var(--cyan);color:var(--cyan);background:rgba(0,194,255,.1)}
+
+.empty{text-align:center;padding:40px;color:var(--tx3);font-style:italic;font-size:16px}
+
+.flujo-circles{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-content:center}
+.fc{background:var(--sur);border:1px solid var(--bor);border-radius:18px;padding:18px 12px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden}
+.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.fc.transporte::before{background:var(--blu)}
+.fc.instalacion::before{background:var(--ora)}
+.fc.pro::before{background:var(--pur)}
+.fc.remansur_transporte::before{background:var(--cyan)}
+.fc.remansur_pro::before{background:linear-gradient(90deg,var(--cyan),var(--pur))}
+.fc-ring{position:relative;width:130px;height:130px}
+.fc-ring svg{transform:rotate(-90deg)}
+.fc-ring .fc-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.fc-ring .fc-pct{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:.9;color:var(--tx)}
+.fc-ring .fc-frac{font-size:13px;color:var(--tx2);font-weight:600;margin-top:2px}
+.fc-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;margin-top:12px;text-transform:uppercase}
+.fc.transporte .fc-name{color:var(--blu)}
+.fc.instalacion .fc-name{color:var(--ora)}
+.fc.pro .fc-name{color:var(--pur)}
+.fc.remansur_transporte .fc-name{color:var(--cyan)}
+.fc.remansur_pro .fc-name{color:var(--pur)}
+.fc-detail{display:flex;gap:12px;margin-top:8px;font-size:12px;color:var(--tx2)}
+.fc-detail b{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px}
+.fc-detail .d-listo b{color:var(--grn)}
+.fc-detail .d-curso b{color:var(--gold)}
+.fc-detail .d-pend b{color:var(--tx2)}
+
+.op-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:0}
+.op-list-ahora{flex:0 1 auto;max-height:130px}
+.op-list-rank{flex:1}
+.op-chip{background:var(--sur2);border:1px solid var(--bor);border-radius:10px;padding:9px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.op-chip .op-nombre{font-size:14px;font-weight:600;color:var(--tx)}
+.op-chip .op-count{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold);background:rgba(244,185,58,.12);border-radius:8px;padding:1px 11px;line-height:1.4}
+.rank-head{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;flex-shrink:0}
+.rank-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;color:var(--tx2);text-transform:uppercase}
+.rank-toggle{display:flex;gap:4px}
+.rank-toggle button{padding:3px 11px;border-radius:7px;border:1px solid var(--bor);background:var(--sur2);color:var(--tx2);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;letter-spacing:.3px}
+.rank-toggle button.on{border-color:var(--gold);color:var(--gold);background:rgba(244,185,58,.1)}
+.rank-stats{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:.2px;white-space:nowrap;flex-shrink:0}
+.rank-stats b{font-size:20px}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;flex-shrink:0}
+.kpi-mini{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:12px 6px;text-align:center;position:relative;overflow:hidden}
+.kpi-mini::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.kpi-mini.hechos::before{background:var(--grn)}
+.kpi-mini.curso::before{background:var(--gold)}
+.kpi-mini.pend::before{background:var(--tx2)}
+.kpi-mini-val{font-family:'Bebas Neue',sans-serif;font-size:56px;line-height:1}
+.kpi-mini-val .tot{font-size:.5em;color:var(--tx2);font-weight:400}
+.kpi-mini.hechos .kpi-mini-val{color:var(--grn)}
+.kpi-mini.curso .kpi-mini-val{color:var(--gold)}
+.kpi-mini.pend .kpi-mini-val{color:var(--tx)}
+.kpi-mini-lbl{font-size:11px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;line-height:1.3}
+.sgr-vacias{flex:0 0 auto;text-align:center;font-size:12px;color:var(--tx3);padding:4px 0;text-transform:uppercase;letter-spacing:.5px}
+.op-sub{font-size:11px;color:var(--tx2);margin-top:1px}
+</style>
+<script>(function(){try{var t=new URLSearchParams(location.search).get('tema')||localStorage.getItem('lm_tema');if(t==='claro'||t==='vivo')document.documentElement.setAttribute('data-tema',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logos">
+      <svg width="210" height="46" viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="7" width="62" height="62" rx="8" fill="#e30613"/>
+        <rect x="15" y="23" width="38" height="11" fill="#fff"/>
+        <rect x="28" y="23" width="12" height="37" fill="#fff"/>
+        <path d="M68 26 L88 40 L68 54 Z" fill="#e30613"/>
+        <text x="98" y="44" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="35" fill="#fff">TAISA</text>
+        <text x="100" y="65" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="16.5" letter-spacing="3" fill="#e30613">LOGISTICS</text>
+      </svg>
+    </div>
+    <div>
+      <div class="hdr-title" id="hdrTitle">PREPARACIÓN <span class="modo" id="hdrModo">· TARDE</span></div>
+      <div class="hdr-sub">Plataforma Málaga · Última milla</div>
+    </div>
+  </div>
+  <div class="hdr-right" style="display:flex;align-items:center">
+    <div>
+      <div class="hdr-clock" id="clock">--:--<span class="hdr-pulse"></span></div>
+      <div class="hdr-date" id="date">—</div>
+    </div>
+    <button class="tema-toggle" id="dashBtn" onclick="location.href=URL_DASHBOARD_CARGAS" title="Ver dashboard Cargas/Descargas">🔀</button>
+    <button class="tema-toggle" id="temaBtn" onclick="cicloTema()" title="Cambiar tema">🌙</button>
+  </div>
+</div>
+
+<div id="alertaCargaBanner" style="display:none"></div>
+<div class="main" id="main"></div>
+
+<div class="footer">
+  <div class="legend" id="legend"></div>
+  <div class="modo-toggle">
+    <button id="btnAuto" class="on" onclick="setModo('auto')">🕐 Auto</button>
+    <button id="btnManana" onclick="setModo('manana')">🌅 Mañana</button>
+    <button id="btnTarde" onclick="setModo('tarde')">🌙 Tarde</button>
+  </div>
+</div>
+
+<script>
+// URL del otro dashboard (Cargas/Descargas Plataforma) -- botón de cambio rápido en el header.
+const URL_DASHBOARD_CARGAS = 'https://script.google.com/a/macros/ext.leroymerlin.es/s/AKfycby54-q25pbCrtpEUhVSNK033iE6NPEKnq3qhd-OK4Vb7VLw1oVDB6BO_leHdk9_Fx4YJA/exec?view=dashboard';
+
+// === TEMA (claro / oscuro / vivo) — ver mismo mecanismo en Index.html ===
+const TEMAS = ['oscuro', 'claro', 'vivo'];
+const TEMA_ICONS = { oscuro: '🌙', claro: '☀️', vivo: '⚡' };
+function temaActual() { return document.documentElement.getAttribute('data-tema') || 'oscuro'; }
+function aplicarTema(t) {
+  if (t === 'oscuro') document.documentElement.removeAttribute('data-tema');
+  else document.documentElement.setAttribute('data-tema', t);
+  try { localStorage.setItem('lm_tema', t); } catch (e) {}
+  const btn = document.getElementById('temaBtn');
+  if (btn) btn.textContent = TEMA_ICONS[t];
+}
+function cicloTema() {
+  const idx = TEMAS.indexOf(temaActual());
+  aplicarTema(TEMAS[(idx + 1) % TEMAS.length]);
+}
+(function() { const btn = document.getElementById('temaBtn'); if (btn) btn.textContent = TEMA_ICONS[temaActual()]; })();
+
+// ====== CAPA DE DATOS · backend Apps Script ======
+function gas(metodo) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function(resolve, reject) {
+    var resuelto = false;
+    function acabar(fn, val) { if (resuelto) return; resuelto = true; clearTimeout(wd); fn(val); }
+    var wd = setTimeout(function() { acabar(reject, new Error('El servidor no responde')); }, 20000);
+    try {
+      if (!(window.google && google.script && google.script.run)) {
+        throw new Error('Esta pantalla no se está sirviendo desde Apps Script (usa la URL /exec?vista=dashboard)');
+      }
+      var runner = google.script.run
+        .withSuccessHandler(function(r) { acabar(resolve, r); })
+        .withFailureHandler(function(e) { acabar(reject, e); });
+      runner[metodo].apply(runner, args);
+    } catch (err) { acabar(reject, err); }
+  });
+}
+
+var CFG = null;
+var SILUETAS = ['A','B','C','D','E','F']; // placeholder inicial; se sobreescribe con CFG.siluetas al cargar
+var POSICIONES = 16;
+var POSICIONES_POR_SILUETA = {}; // excepciones (p.ej. E/F más grandes)
+function posicionesDeSilueta(sil) { return (POSICIONES_POR_SILUETA && POSICIONES_POR_SILUETA[sil]) || POSICIONES; }
+var HORA_CAMBIO = 14;
+const FLUJO_LETRA = { transporte:'T', instalacion:'I', pro:'P', remansur_transporte:'R', remansur_pro:'R+' };
+
+// Datos vivos (poblados desde el backend en cada refresco)
+var PEDIDOS = [];
+var OCUPACION = [];
+var CARGA = null;          // compat: la carga más reciente
+var CARGAS_ACTIVAS = [];   // TODAS las cargas GENERADA (puede haber varias a la vez)
+var CARGAS_HOY = [];       // TODAS las cargas de hoy, GENERADA o ya CERRADA (para los KPIs de totales)
+var ENSILUETA_SIN_CARGAR = 0;     // pedidos en silueta sin entregar que NUNCA han rebotado (estén o no ya en una carga)
+var PENDIENTES_2CARGA_COUNT = 0;  // pedidos en silueta pendientes de una 2ª/3ª carga (cálculo robusto, no solo cargasHoy)
+var PENDIENTES_2CARGA_PEDS = [];  // sus números de pedido, para poder identificarlos a simple vista
+var RANKING = { semana: [], mes: [] }; // pedidos cerrados por operario -- se refresca cada 5min, no cada 10s
+const MEDALLAS = ['🥇','🥈','🥉'];
+
+function esc(s) { return String(s===null||s===undefined?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ====== ESTADO ======
+let modoForzado = 'auto'; // auto | manana | tarde
+function modoActual() {
+  if (modoForzado !== 'auto') return modoForzado;
+  const h = new Date().getHours();
+  return h < HORA_CAMBIO ? 'manana' : 'tarde';
+}
+function setModo(m) {
+  modoForzado = m;
+  document.getElementById('btnAuto').classList.toggle('on', m==='auto');
+  document.getElementById('btnManana').classList.toggle('on', m==='manana');
+  document.getElementById('btnTarde').classList.toggle('on', m==='tarde');
+  render();
+}
+
+let rankPeriodo = 'semana'; // semana | mes
+function setRankPeriodo(p) {
+  rankPeriodo = p;
+  render();
+}
+function rankingHTML() {
+  const lista = RANKING[rankPeriodo] || [];
+  if (!lista.length) return '<div class="empty" style="padding:14px;font-size:13px">Sin datos todavía</div>';
+  return lista.map((r, i) => `<div class="op-chip"><span class="op-nombre">${MEDALLAS[i]||''} ${esc(r.operario)}</span><span class="rank-stats"><b>${r.pedidos}</b> ped · <b>${r.soportes||0}</b> sop</span></div>`).join('');
+}
+
+// ====== RELOJ ======
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').innerHTML = n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) + '<span class="hdr-pulse"></span>';
+  document.getElementById('date').textContent = n.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long'});
+}
+setInterval(tick, 1000); tick();
+
+// Helper de estado: ¿pedido listo para silueta / colocado?
+function esListo(p) { return p.estado==='COMPLETADO' || p.estado==='COMPLETADO_LISTO' || p.estado==='PARCIAL_LISTO'; }
+
+// ====== RENDER ======
+function render() {
+  const modo = modoActual();
+  const title = document.getElementById('hdrTitle');
+  const hdrModo = document.getElementById('hdrModo');
+  if (modo === 'manana') {
+    title.classList.remove('tarde');
+    title.childNodes[0].nodeValue = 'CARGA ';
+    hdrModo.textContent = '· MAÑANA';
+    renderManana();
+  } else {
+    title.classList.add('tarde');
+    title.childNodes[0].nodeValue = 'PREPARACIÓN ';
+    hdrModo.textContent = '· TARDE';
+    renderTarde();
+  }
+  renderLegend();
+}
+
+function ocupMap() {
+  const m = {};
+  OCUPACION.forEach(o => {
+    if (!m[o.silueta]) m[o.silueta] = {};
+    if (!m[o.silueta][o.pos]) m[o.silueta][o.pos] = {};
+    m[o.silueta][o.pos][o.layer] = o;
+  });
+  return m;
+}
+
+// Quién está sacando cada pedido AHORA (EN_PREPARACION + operario asignado),
+// agrupado y ordenado por más pedidos en curso primero. Bajo cada nombre, en
+// qué tiendas/flujos está tocando ahora mismo (ya lo tenemos en `base`, cero
+// llamadas nuevas al backend).
+function operariosHTML(base) {
+  const enCurso = base.filter(p => p.estado === 'EN_PREPARACION' && p.operario);
+  if (!enCurso.length) return '<div class="empty" style="padding:20px;font-size:14px">Nadie preparando pedidos ahora</div>';
+  const porOperario = {};
+  enCurso.forEach(p => {
+    const o = (porOperario[p.operario] = porOperario[p.operario] || { count: 0, tiendas: new Set() });
+    o.count++;
+    if (p.tienda) o.tiendas.add(p.tienda);
+  });
+  return Object.keys(porOperario)
+    .sort((a, b) => porOperario[b].count - porOperario[a].count)
+    .map(op => {
+      const o = porOperario[op];
+      const sub = o.tiendas.size ? `<div class="op-sub">${Array.from(o.tiendas).map(esc).join(' · ')}</div>` : '';
+      return `<div class="op-chip"><div><span class="op-nombre">${esc(op)}</span>${sub}</div><span class="op-count">${o.count}</span></div>`;
+    })
+    .join('');
+}
+
+function ring(pct, color, size, sw) {
+  const r = (size/2) - sw;
+  const c = 2*Math.PI*r;
+  const dash = c*pct/100;
+  return `<svg width="${size}" height="${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--sur3)" stroke-width="${sw}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${dash} ${c}"/>
+  </svg>`;
+}
+
+function renderTarde() {
+  // La alerta de "carga nueva sin recoger" es solo de la mañana.
+  const banner = document.getElementById('alertaCargaBanner');
+  if (banner) banner.style.display = 'none';
+  // Excluye TODOS los estados terminales (no solo ENTREGADO): un pedido
+  // resuelto por otra vía (devuelto a almacén, cerrado sin silueta...) hace
+  // semanas se quedaba contando para siempre como "pendiente" en el
+  // denominador sin sumar nunca al numerador — el % global bajaba con el
+  // tiempo aunque ya no quedara casi nada por preparar.
+  const base = PEDIDOS.filter(p => !TERMINALES_DASH[p.estado]);
+  const total = base.length;
+  const listos = base.filter(esListo).length;
+  const curso = base.filter(p => p.estado === 'EN_PREPARACION').length;
+  const pend = base.filter(p => p.estado === 'PENDIENTE').length;
+  const pctGlobal = total ? Math.round(listos*100/total) : 0;
+
+  const flujos = [
+    { id:'transporte',          nombre:'Transporte',  color:'#3498db' },
+    { id:'instalacion',         nombre:'Instalación', color:'#fb923c' },
+    { id:'pro',                 nombre:'PRO',         color:'#a78bfa' },
+    { id:'remansur_transporte', nombre:'Remansur',    color:'#00c2ff' },
+    { id:'remansur_pro',        nombre:'Remansur PRO',color:'#a78bfa' }
+  ];
+
+  let circlesHTML = '';
+  flujos.forEach(f => {
+    const fps = base.filter(p => p.flujo === f.id);
+    if (!fps.length) return;
+    const fl = fps.filter(esListo).length;
+    const fc = fps.filter(p => p.estado === 'EN_PREPARACION').length;
+    const fpd = fps.filter(p => p.estado === 'PENDIENTE').length;
+    const fp = Math.round(fl*100/fps.length);
+    circlesHTML += `<div class="fc ${f.id}">
+      <div class="fc-ring">
+        ${ring(fp, f.color, 130, 11)}
+        <div class="fc-center"><span class="fc-pct">${fp}%</span><span class="fc-frac">${fl}/${fps.length}</span></div>
+      </div>
+      <div class="fc-name">${f.nombre}</div>
+      <div class="fc-detail">
+        <span class="d-listo">✓<b>${fl}</b></span>
+        <span class="d-curso">⏳<b>${fc}</b></span>
+        <span class="d-pend">○<b>${fpd}</b></span>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('main').innerHTML = `
+    <div class="col-left">
+      <div class="kpi-row">
+        <div class="kpi-mini hechos"><div class="kpi-mini-val">${listos}<span class="tot">/${total}</span></div><div class="kpi-mini-lbl">Listos</div></div>
+        <div class="kpi-mini curso"><div class="kpi-mini-val">${curso}</div><div class="kpi-mini-lbl">En preparación</div></div>
+        <div class="kpi-mini pend"><div class="kpi-mini-val">${pend}</div><div class="kpi-mini-lbl">Por preparar</div></div>
+      </div>
+      <div class="panel" style="flex-direction:row;align-items:center;gap:18px;flex-shrink:0;padding:14px 18px">
+        <div class="gp-circle" style="width:118px;height:118px;flex-shrink:0">
+          <svg width="118" height="118">
+            <circle cx="59" cy="59" r="50" fill="none" stroke="var(--sur3)" stroke-width="11"/>
+            <circle cx="59" cy="59" r="50" fill="none" stroke="var(--grn)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${2*Math.PI*50*pctGlobal/100} ${2*Math.PI*50}" transform="rotate(-90 59 59)"/>
+          </svg>
+          <div class="gp-txt"><span class="gp-pct" style="font-size:32px">${pctGlobal}%</span></div>
+        </div>
+        <div style="font-size:13px;color:var(--tx2);line-height:1.6"><b style="color:var(--tx);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;display:block">PROGRESO GLOBAL</b>${listos} de ${total} pedidos listos para silueta</div>
+      </div>
+      <div class="panel" style="flex:1;min-height:0">
+        <h2>Quién está preparando</h2>
+        <div class="op-list op-list-ahora">${operariosHTML(base)}</div>
+        <div class="rank-head">
+          <span class="rank-title">🏆 Pedidos cerrados</span>
+          <div class="rank-toggle">
+            <button class="${rankPeriodo==='semana'?'on':''}" onclick="setRankPeriodo('semana')">Semana</button>
+            <button class="${rankPeriodo==='mes'?'on':''}" onclick="setRankPeriodo('mes')">Mes</button>
+          </div>
+        </div>
+        <div class="op-list op-list-rank">${rankingHTML()}</div>
+      </div>
+    </div>
+    <div class="col-right">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--tx2);margin-bottom:12px">Avance por tipo de transporte</h2>
+      <div class="flujo-circles">${circlesHTML || '<div class="empty">Sin pedidos en preparación</div>'}</div>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--tx2);margin:16px 0 10px">Ocupación de siluetas</h2>
+      ${siluetasGrandeHTML({})}
+    </div>
+  `;
+  ajustarTamanoCeldasSil();
+}
+
+// Paleta para distinguir, en pantalla, qué cargas están siendo cargadas AHORA
+// (carga generada + cargador ya asignado) — cada una con su color.
+const PALETA_CARGA = ['#f0b429', '#00c2ff', '#ec4899', '#a78bfa', '#2dd4bf'];
+
+function renderManana() {
+  const cargas = CARGAS_ACTIVAS || [];   // solo GENERADA: para resaltar "en curso" en las siluetas
+  // Alerta de cargas recién generadas y AÚN sin cargador asignado — es la
+  // señal de "está lista, nadie la ha recogido todavía". Se apaga sola en
+  // cuanto alguien le asigna cargador (entregarACargador), sin que nadie
+  // tenga que cerrarla a mano.
+  const sinRecoger = cargas.filter(c => !c.cargador);
+  const banner = document.getElementById('alertaCargaBanner');
+  if (banner) {
+    if (sinRecoger.length) {
+      banner.style.display = 'flex';
+      banner.innerHTML = `<span class="aab-tit">🚨 ${sinRecoger.length} carga${sinRecoger.length!==1?'s':''} nueva${sinRecoger.length!==1?'s':''} sin recoger</span>` +
+        `<span class="aab-det">${sinRecoger.map(c => `<b>Carga ${esc(c.numCarga)}</b>${c.responsable?' · '+esc(c.responsable):''}`).join(' &nbsp;·&nbsp; ')} — recógela${sinRecoger.length!==1?'s':''} en Administración</span>`;
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+  // "Cargados" y el círculo de progreso siguen viendo solo lo de HOY
+  // (CARGAS_HOY, incluye también las ya CERRADA hoy — confirmarEntregas()
+  // cierra la carga en el mismo instante en que sus pedidos pasan a
+  // ENTREGADO/CARGA_2, así que mirar solo las GENERADA las haría desaparecer
+  // justo cuando existen esos datos).
+  const cargasHoy = CARGAS_HOY || [];
+  const allItems = [];
+  cargasHoy.forEach(c => allItems.push.apply(allItems, c.items || []));
+  const total = allItems.length;
+  const entregados = allItems.filter(i => i.estado === 'ENTREGADO').length;
+  const pct = total ? Math.round(entregados*100/total) : 0;
+
+  // "En silueta sin cargar" y "2ª/3ª carga" en cambio NO se limitan a lo que
+  // hay dentro de las cargas de HOY — eso dejaba fuera cualquier pedido que
+  // siga en silueta pero aún no se haya metido en NINGUNA carga (justo lo
+  // que confundía: "Por cargar: 0" con pedidos todavía visibles en el mapa
+  // de siluetas). Vienen ya calculados del backend (misma lógica que la
+  // pantalla Entregas del panel admin).
+  const pedsSegundaCarga = PENDIENTES_2CARGA_PEDS || [];
+
+  // Cargas EN CURSO (ya con cargador asignado) → resaltar sus pedidos en las siluetas.
+  const colorPorPed = {};
+  const enCurso = cargas.filter(c => c.cargador);
+  enCurso.forEach((c, idx) => {
+    const color = PALETA_CARGA[idx % PALETA_CARGA.length];
+    (c.items || []).forEach(it => { if (it.estado !== 'ENTREGADO') colorPorPed[String(it.ped)] = color; });
+  });
+  const legendHTML = enCurso.length ? '<div class="cargas-legend">' + enCurso.map((c, idx) => {
+    const color = PALETA_CARGA[idx % PALETA_CARGA.length];
+    return `<div class="cargas-legend-item"><span class="cargas-legend-dot" style="background:${color}"></span>Carga <b>${esc(c.numCarga)}</b> · ${esc(c.cargador)}</div>`;
+  }).join('') + '</div>' : '';
+
+  document.getElementById('main').innerHTML = `
+    <div class="col-left">
+      <div class="kpi-big hechos"><div class="kpi-big-label">Cargados hoy</div><div class="kpi-big-val">${entregados}</div><div class="kpi-big-sub">de ${total} pedidos en ruta hoy</div></div>
+      <div class="kpi-big pend"><div class="kpi-big-label">En silueta sin cargar</div><div class="kpi-big-val">${ENSILUETA_SIN_CARGAR}</div></div>
+      <div class="kpi-big"><div class="kpi-big-label">2ª/3ª carga</div><div class="kpi-big-val" style="color:var(--tx2)">${PENDIENTES_2CARGA_COUNT}</div>${pedsSegundaCarga.length?`<div class="kpi-big-sub" style="word-break:break-all">${pedsSegundaCarga.map(esc).join(', ')}</div>`:''}</div>
+      <div class="panel" style="flex:1">
+        <h2>Progreso de carga</h2>
+        <div class="global-prog">
+          <div class="gp-circle">
+            <svg width="120" height="120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--sur3)" stroke-width="11"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--gold)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${2*Math.PI*52*pct/100} ${2*Math.PI*52}"/>
+            </svg>
+            <div class="gp-txt"><span class="gp-pct" style="color:var(--gold)">${pct}%</span><span class="gp-lbl">${cargas.length} carga${cargas.length!==1?'s':''}</span></div>
+          </div>
+          <div style="flex:1;font-size:14px;color:var(--tx2);line-height:1.8">
+            ${cargas.length ? cargas.length + ' carga' + (cargas.length!==1?'s activas':' activa') : 'Sin cargas activas'}.<br>
+            Los pedidos no entregados pasan a la <b style="color:var(--gold)">siguiente carga</b>.
+          </div>
+        </div>
+        ${legendHTML}
+      </div>
+    </div>
+    <div class="col-right">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--tx2);margin-bottom:10px">Siluetas · ocupación en vivo</h2>
+      ${siluetasGrandeHTML(colorPorPed)}
+    </div>
+  `;
+  ajustarTamanoCeldasSil();
+}
+
+// Calcula, a partir del hueco REAL de una casilla ya dibujada, el mayor tamaño
+// de letra que cabe sin desbordar (según el pedido más largo visible). Así los
+// números siempre salen lo más grandes posible, se adapte a la pantalla que sea.
+function ajustarTamanoCeldasSil() {
+  // OJO: el tamaño se calcula POR FILA (--sgr-font se fija en cada .sgr-row,
+  // no en <html>), porque las siluetas con más posiciones (E/F a 27) tienen
+  // celdas más estrechas que las de 16 — un tamaño único para toda la
+  // pantalla desbordaba/truncaba los números en esas filas.
+  const todasCeldas = document.querySelectorAll('.sgr-cell:not(.reservado)');
+  if (!todasCeldas.length) return;
+  let maxLen = 1;
+  todasCeldas.forEach(function(c) {
+    const t = c.textContent || '';
+    if (t.length > maxLen) maxLen = t.length;
+  });
+  document.querySelectorAll('.sgr-row').forEach(function(row) {
+    const muestra = row.querySelector('.sgr-cell:not(.reservado)') || row.querySelector('.sgr-cell');
+    if (!muestra) return;
+    const rect = muestra.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    // Bebas Neue es una fuente estrecha (condensada): ~0,52 del tamaño de letra por carácter.
+    const porAncho = (rect.width * 0.86) / (maxLen * 0.52);
+    const porAlto = rect.height * 0.72;
+    const tam = Math.max(9, Math.min(porAncho, porAlto, 46));
+    row.style.setProperty('--sgr-font', tam.toFixed(1) + 'px');
+  });
+}
+
+// Bultos (posición 0, ilimitada) y zonas libres (silueta con nombre a mano):
+// ninguno de los dos genera fila en OCUPACION, así que se derivan directo de
+// PEDIDOS — mismo criterio que el panel admin (Index.html → renderDashboard).
+const TERMINALES_DASH = { ENTREGADO:1, DEVUELTO_ALMACEN:1, ENVIADO_TIENDA:1, SALIDA_MANUAL:1, CERRADO_SIN_SILUETA:1 };
+function bultosPorSilueta() {
+  // Solo bultos en siluetas FIJAS (A-G) — los de zona libre los muestra
+  // zonasLibresPorNombre() (con el indicador 📦), para no duplicar el mismo
+  // pedido en las dos listas cuando es bulto Y está en una zona libre a la vez.
+  const m = {};
+  PEDIDOS.forEach(p => {
+    if (p.silueta && SILUETAS.indexOf(p.silueta) !== -1 && Number(p.posIni) === 0 && !TERMINALES_DASH[p.estado]) {
+      (m[p.silueta] = m[p.silueta] || []).push(p);
+    }
+  });
+  return m;
+}
+// Bultos MEZCLADOS con un soporte real (palet/jaula) en el MISMO pedido: el
+// pedido sigue en su posición numerada normal (no se toca su hueco), pero
+// se lista aparte para que en la Pantalla TV también se vea que ese pedido
+// lleva bultos sueltos además del soporte — mismo criterio que
+// bultos0/bultosMixtos del panel admin (Index.html → renderDashboard).
+function bultosMixtosPorSilueta() {
+  const m = {};
+  PEDIDOS.forEach(p => {
+    if (p.silueta && SILUETAS.indexOf(p.silueta) !== -1 && Number(p.posIni) !== 0 && !TERMINALES_DASH[p.estado] &&
+        Array.isArray(p.soportes) && p.soportes.some(s => s.tipoId === 'bulto' && Number(s.cant) > 0)) {
+      (m[p.silueta] = m[p.silueta] || []).push(p);
+    }
+  });
+  return m;
+}
+function zonasLibresPorNombre() {
+  const m = {};
+  PEDIDOS.forEach(p => {
+    if (p.silueta && SILUETAS.indexOf(p.silueta) === -1 && !TERMINALES_DASH[p.estado]) {
+      (m[p.silueta] = m[p.silueta] || []).push(p);
+    }
+  });
+  return m;
+}
+function chipExtra(p, etiqueta) {
+  const marca = Number(p.posIni) === 0 ? '📦 ' : '';
+  const intento = Number(p.intentoCarga) >= 2 ? ` · ${p.intentoCarga}ª` : '';
+  return `<span class="extra-chip tienda-${esc(p.tienda)}">${marca}${esc(p.ped)} <b>${esc(etiqueta)}</b>${intento}</span>`;
+}
+function extraHTML() {
+  const bultos = bultosPorSilueta();
+  const mixtos = bultosMixtosPorSilueta();
+  const zonas = zonasLibresPorNombre();
+  let html = '';
+  const bultosList = Object.keys(bultos).flatMap(s => bultos[s].map(p => chipExtra(p, s)));
+  if (bultosList.length) {
+    html += `<div class="sgr-extra-row"><span class="sgr-extra-lbl">📦 Bultos (posición 0)</span>${bultosList.join('')}</div>`;
+  }
+  const mixtosList = Object.keys(mixtos).flatMap(s => mixtos[s].map(p => chipExtra(p, s)));
+  if (mixtosList.length) {
+    html += `<div class="sgr-extra-row"><span class="sgr-extra-lbl">📦 Bultos junto a soporte</span>${mixtosList.join('')}</div>`;
+  }
+  const zonasList = Object.keys(zonas).flatMap(nombre => zonas[nombre].map(p => chipExtra(p, nombre)));
+  if (zonasList.length) {
+    html += `<div class="sgr-extra-row"><span class="sgr-extra-lbl">📍 Otras zonas</span>${zonasList.join('')}</div>`;
+  }
+  return html ? `<div class="sgr-extra">${html}</div>` : '';
+}
+
+// Igual que siluetasHTML() pero MUCHO más grande (una fila por silueta, a todo lo
+// ancho) y con el NÚMERO DE PEDIDO dentro de cada casilla. colorPorPed resalta con
+// un color (y un pulso) las casillas de los pedidos que se están cargando AHORA.
+function siluetasGrandeHTML(colorPorPed) {
+  const om = ocupMap();
+  // Pedidos que ya rebotaron de una carga anterior (intentoCarga>=2): se
+  // marcan con un borde discontinuo — no cabe una insignia con número en
+  // celdas tan pequeñas (siluetas de 27 posiciones), así que solo se
+  // distingue el borde. Prioridad: si además se está cargando AHORA MISMO
+  // (colorPorPed), ese resaltado manda — es la info más urgente en vivo.
+  const intentoPorPed = {};
+  PEDIDOS.forEach(p => { if (Number(p.intentoCarga) >= 2) intentoPorPed[String(p.ped)] = Number(p.intentoCarga); });
+  // Siluetas totalmente vacías (ni front ni back en ninguna posición) no se
+  // dibujan a tamaño completo -- en una TV grande, una fila entera de casillas
+  // vacías es puro espacio desperdiciado. Se listan aparte en una línea
+  // compacta y el hueco se lo reparten las siluetas con actividad real (cada
+  // .sgr-row es flex:1, así que menos filas = filas más altas y legibles).
+  const activas = [], vacias = [];
+  SILUETAS.forEach(s => {
+    const sil = om[s] || {};
+    const hayAlgo = Object.keys(sil).some(p => sil[p].front || sil[p].back);
+    (hayAlgo ? activas : vacias).push(s);
+  });
+  const lista = activas.length ? activas : SILUETAS; // si TODAS están vacías, mejor mostrarlas todas que dejar el panel en blanco
+  let html = '<div class="sil-grande">';
+  lista.forEach(s => {
+    const sil = om[s] || {};
+    const traseras = Object.keys(sil).filter(p => sil[p].back).length;
+    const maxPosS = posicionesDeSilueta(s);
+    let front = '', back = '';
+    for (let p = 1; p <= maxPosS; p++) {
+      const cell = sil[p] || {};
+      front += celdaGrandeHTML(cell.front, colorPorPed, intentoPorPed);
+      back  += celdaGrandeHTML(cell.back, colorPorPed, intentoPorPed);
+    }
+    html += `<div class="sgr-row">
+      <div class="sgr-letra-wrap"><span class="sgr-letra">${s}</span><span class="sgr-ocup">${traseras}/${maxPosS}</span></div>
+      <div class="sgr-grid">
+        <div class="sgr-line" style="grid-template-columns:repeat(${maxPosS},1fr)">${front}</div>
+        <div class="sgr-line" style="grid-template-columns:repeat(${maxPosS},1fr)">${back}</div>
+      </div>
+    </div>`;
+  });
+  if (vacias.length && activas.length) {
+    html += `<div class="sgr-vacias">Sin actividad: ${vacias.map(esc).join(', ')}</div>`;
+  }
+  html += extraHTML(); // chipExtra ya lee p.intentoCarga directo del pedido, no hace falta pasarle el mapa
+  html += '</div>';
+  return html;
+}
+function celdaGrandeHTML(o, colorPorPed, intentoPorPed) {
+  if (!o) return '<div class="sgr-cell"></div>';
+  if (o.reservado) return '<div class="sgr-cell reservado">·</div>';
+  const color = colorPorPed[String(o.pedido)];
+  if (color) {
+    return `<div class="sgr-cell cargando" style="border-color:${color};color:${color};background:${color}2b">${esc(o.pedido)}</div>`;
+  }
+  const rebote = (intentoPorPed && intentoPorPed[String(o.pedido)]) ? ' rebote' : '';
+  return `<div class="sgr-cell tienda-${esc(o.tienda)}${rebote}">${esc(o.pedido)}</div>`;
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML = `
+    <span style="font-weight:700;letter-spacing:.5px">TIENDA:</span>
+    <span><i style="background:var(--t-mal-bg);border:1px solid var(--t-mal)"></i>Málaga</span>
+    <span><i style="background:var(--t-mrb-bg);border:1px solid var(--t-mrb)"></i>Marbella</span>
+    <span><i style="background:var(--t-mij-bg);border:1px solid var(--t-mij)"></i>Mijas</span>
+    <span style="margin-left:14px;font-weight:700;letter-spacing:.5px">FLUJO:</span>
+    <span><b class="letra">T</b>Transporte</span>
+    <span><b class="letra">I</b>Instalación</span>
+    <span><b class="letra">P</b>PRO</span>
+    <span><b class="letra">R</b>Remansur</span>
+    <span><b class="letra">R+</b>Rem.PRO</span>
+  `;
+}
+
+// ====== REFRESCO DESDE BACKEND ======
+async function refrescar() {
+  try {
+    const d = await gas('obtenerDatosDashboard');
+    PEDIDOS = d.pedidos || [];
+    OCUPACION = d.ocupacion || [];
+    CARGA = d.cargaActiva || null;
+    CARGAS_ACTIVAS = d.cargasActivas || [];
+    CARGAS_HOY = d.cargasHoy || [];
+    ENSILUETA_SIN_CARGAR = d.enSiluetaSinCargar || 0;
+    PENDIENTES_2CARGA_COUNT = d.pendientesSegundaCargaCount || 0;
+    PENDIENTES_2CARGA_PEDS = d.pendientesSegundaCargaPeds || [];
+    render();
+  } catch (e) {
+    // En caso de error transitorio, mantener la última pintura
+    console.error('refresco dashboard:', e);
+  }
+}
+
+// Ranking (pedidos cerrados por operario) -- aparte del refresco de 10s: lee
+// varias semanas de LOG, no hace falta pedirlo tan seguido.
+async function refrescarRanking() {
+  try {
+    RANKING = await gas('obtenerRankingOperarios');
+    render();
+  } catch (e) { console.error('refresco ranking:', e); }
+}
+
+function arrancarDashboard() {
+  gas('obtenerConfig').then(function(cfg) {
+    CFG = cfg;
+    if (cfg) {
+      SILUETAS = cfg.siluetas || SILUETAS;
+      POSICIONES = cfg.posiciones || POSICIONES;
+      POSICIONES_POR_SILUETA = cfg.posicionesPorSilueta || {};
+      HORA_CAMBIO = cfg.horaCambioModo || HORA_CAMBIO;
+    }
+    refrescar();
+    setInterval(refrescar, 10000); // refresco cada 10s
+  }).catch(function() {
+    refrescar();
+    setInterval(refrescar, 10000);
+  });
+  refrescarRanking();
+  setInterval(refrescarRanking, 300000); // ranking cada 5min
+}
+// Si cambia el tamaño de la ventana/pantalla, recalcular el tamaño de los números.
+let _resizeTO = null;
+window.addEventListener('resize', function() {
+  clearTimeout(_resizeTO);
+  _resizeTO = setTimeout(function() { try { ajustarTamanoCeldasSil(); } catch (e) {} }, 200);
+});
+
+// === MANTENER LA PANTALLA ACTIVA (Wake Lock) ===
+// Este dashboard suele quedar abierto sin ratón/teclado en un PC dedicado (la
+// pantalla del almacén) — sin esto, Windows lo manda a suspensión por
+// inactividad a los pocos minutos. El Wake Lock API le pide al navegador que
+// mantenga la pantalla encendida mientras la pestaña esté visible; el propio
+// navegador lo libera solo si se minimiza o se cambia de pestaña, así que se
+// vuelve a pedir automáticamente en cuanto vuelve a estar visible.
+let wakeLock = null;
+async function mantenerPantallaActiva() {
+  if (!('wakeLock' in navigator)) return; // navegador sin soporte: no rompe nada, simplemente no aplica
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', function() { wakeLock = null; });
+  } catch (e) { /* p.ej. pestaña oculta en este instante: se reintenta en visibilitychange */ }
+}
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && !wakeLock) mantenerPantallaActiva();
+});
+
+// Script al final del body: el DOM ya existe. Arrancamos directamente, sin esperar
+// a DOMContentLoaded (en el iframe de Apps Script no llega de forma fiable).
+try { arrancarDashboard(); mantenerPantallaActiva(); } catch (e) {}
+</script>
+</body>
+</html>

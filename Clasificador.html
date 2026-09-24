@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080a10;--sur:#0f1220;--sur2:#161b2e;--sur3:#1e2438;
+  --red:#e8102a;--red-dim:rgba(232,16,42,.13);--cyan:#12cbff;--gold:#f4b93a;--grn:#2ed673;
+  --blu:#4aa3e8;--ora:#ff9d54;--pur:#b291fc;
+  --tx:#f4f7ff;--tx2:#8592b8;--tx3:#48537a;--bor:rgba(255,255,255,.1);--bor2:rgba(255,255,255,.18);
+  --t-Málaga:#6ee7b7;--t-Marbella:#7dd3fc;--t-Mijas:#c4b5fd;--t-Granada:#fda4af;
+}
+/* === TEMA CLARO === */
+:root[data-tema="claro"]{
+  --bg:#eef1f7;--sur:#ffffff;--sur2:#f3f5fa;--sur3:#dde3ee;
+  --red:#e30613;--red-dim:rgba(227,6,19,.11);--cyan:#0090c2;--gold:#b8810a;--grn:#0f8a45;
+  --blu:#2e7fc4;--ora:#d05a0d;--pur:#7c4fe0;
+  --tx:#101c29;--tx2:#4d5f7a;--tx3:#8a97ad;--bor:rgba(18,28,50,.16);--bor2:rgba(18,28,50,.26);
+  --t-Málaga:#0f9d63;--t-Marbella:#0284c7;--t-Mijas:#7c3aed;--t-Granada:#e11d48;
+}
+/* === TEMA VIVO: base oscura con acentos neón === */
+:root[data-tema="vivo"]{
+  --bg:#0d0221;--sur:#1a0b3d;--sur2:#24124f;--sur3:#301a63;
+  --red:#ff2d6a;--red-dim:rgba(255,45,106,.2);--cyan:#1af3ff;--gold:#ffdc3d;--grn:#1af0a0;
+  --blu:#628fff;--ora:#ff7d4d;--pur:#d091ff;
+  --tx:#fdfbff;--tx2:#b7adda;--tx3:#7a6cab;--bor:rgba(199,157,255,.18);--bor2:rgba(199,157,255,.28);
+  --t-Málaga:#39ffb0;--t-Marbella:#38bdf8;--t-Mijas:#e0aaff;--t-Granada:#ff5c8a;
+}
+.tema-toggle{background:var(--sur2);border:1px solid var(--bor2);color:var(--tx);font-size:15px;width:32px;height:32px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;vertical-align:middle;margin-left:10px;transition:border-color .15s}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh;padding:18px}
+.wrap{max-width:100%;margin:0 auto}
+h1{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:2px}
+h1 span{color:var(--red)}
+.sub{font-size:12px;color:var(--tx2);text-transform:uppercase;letter-spacing:1px;margin-bottom:18px}
+.zonas{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.zona{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:12px}
+.zona h3{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.zona h3 i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.zona.Transporte h3 i{background:var(--blu)} .zona.Instalaciones h3 i{background:var(--ora)}
+.zona.PRO h3 i{background:var(--pur)} .zona.Remansur h3 i{background:var(--cyan)}
+.zona textarea{width:100%;min-height:140px;background:var(--sur2);border:1px solid var(--bor);border-radius:10px;color:var(--tx);font-family:'DM Sans',monospace;font-size:13px;padding:10px;outline:none;resize:vertical}
+.zona textarea:focus{border-color:var(--red)}
+.zona .cuenta{font-size:10px;color:var(--tx2);margin-top:5px;text-transform:uppercase;letter-spacing:.5px}
+
+/* PARCIALES */
+.parcial-box{background:var(--sur);border:1px dashed var(--bor2);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.parcial-toggle{background:none;border:none;color:var(--cyan);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;padding:0}
+.parcial-form{display:none;margin-top:12px}
+.parcial-form.abierto{display:block}
+.pf-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.pf-row .campo{display:flex;flex-direction:column;gap:4px}
+.pf-row label{font-size:10px;color:var(--tx2);text-transform:uppercase;letter-spacing:.5px}
+.pf-row input,.pf-row select{background:var(--sur2);border:1px solid var(--bor);border-radius:10px;color:var(--tx);font-family:inherit;font-size:14px;padding:9px 11px;outline:none}
+.pf-row input:focus,.pf-row select:focus{border-color:var(--red)}
+.dirs-box{margin-top:12px;background:var(--sur2);border:1px solid var(--bor);border-radius:10px;padding:10px;max-height:230px;overflow:auto;display:none}
+.dirs-box.show{display:block}
+.dirs-tools{display:flex;gap:8px;margin-bottom:8px;align-items:center;font-size:11px;color:var(--tx2)}
+.dirs-tools button{background:var(--sur3);border:1px solid var(--bor);color:var(--tx2);border-radius:8px;font-size:11px;padding:3px 9px;cursor:pointer;font-family:inherit}
+.dir-item{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--bor);font-size:12px}
+.dir-item input{width:16px;height:16px;accent-color:var(--red)}
+.dir-item .d{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--cyan);min-width:64px;letter-spacing:.5px}
+.dir-item .ds{color:var(--tx2);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.parciales-lista{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.parcial-chip{display:flex;align-items:center;gap:10px;background:var(--sur2);border:1px solid var(--bor);border-radius:10px;padding:7px 10px;font-size:12px}
+.parcial-chip .num{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px}
+.parcial-chip .quitar{margin-left:auto;background:var(--red-dim);border:1px solid rgba(227,6,19,.3);color:var(--red);border-radius:8px;font-size:11px;padding:3px 9px;cursor:pointer;font-family:inherit}
+.tag-parcial{background:rgba(0,194,255,.15);color:var(--cyan);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;letter-spacing:.3px;text-transform:uppercase}
+
+/* COLISIONES */
+.colision-box{background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.4);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.colision-box h4{font-size:13px;color:var(--gold);margin-bottom:6px;font-weight:700}
+.colision-box .lista{font-size:12px;color:var(--tx2);margin-bottom:10px}
+.colision-box .controles{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.colision-box select{background:var(--sur2);border:1px solid var(--bor2);color:var(--tx);border-radius:10px;padding:8px 11px;font-family:inherit;font-size:13px}
+.colision-box .aplicar{background:var(--gold);color:#000;border:none;border-radius:10px;padding:8px 16px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
+
+.acciones{display:flex;gap:10px;align-items:center;margin-bottom:18px}
+.btn{padding:13px 22px;background:var(--red);color:#fff;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sec{background:var(--sur2);color:var(--tx2);border:1px solid var(--bor)}
+.btn.mini{padding:9px 14px;font-size:12px}
+.estado{font-size:12px;color:var(--tx2);white-space:pre-line;display:inline-block}
+.avisos{background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--gold);margin-bottom:14px;white-space:pre-line}
+.resultado{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.tseccion{background:var(--sur);border:1px solid var(--bor);border-radius:14px;padding:14px}
+.tseccion h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.tseccion h2 .badge{font-size:11px;font-family:'DM Sans',sans-serif;background:var(--sur3);color:var(--tx2);padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px}
+.tgrupo .tienda-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+.chip{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;letter-spacing:.3px;text-transform:uppercase}
+.chip.Málaga{background:rgba(110,231,183,.18);color:var(--t-Málaga)}
+.chip.Marbella{background:rgba(125,211,252,.18);color:var(--t-Marbella)}
+.chip.Mijas{background:rgba(196,181,253,.18);color:var(--t-Mijas)}
+.chip.Granada{background:rgba(253,164,175,.18);color:var(--t-Granada)}
+.pfila{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bor);font-size:13px}
+.pfila .num{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px;min-width:74px}
+.pfila .meta{color:var(--tx2);font-size:11px;margin-left:auto}
+.noenc{margin-top:8px;font-size:11px;color:#ff6b6b}
+.vacio{color:var(--tx3);font-style:italic;font-size:12px;padding:6px 0}
+@media(max-width:760px){.zonas{grid-template-columns:repeat(2,1fr)}.resultado{grid-template-columns:1fr}}
+.btn-cargando{position:relative;pointer-events:none;opacity:.6}
+.btn-cargando::after{content:'';position:absolute;top:50%;left:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:btnspin .6s linear infinite}
+@keyframes btnspin{to{transform:rotate(360deg)}}
+</style>
+<script>(function(){try{var t=new URLSearchParams(location.search).get('tema')||localStorage.getItem('lm_tema');if(t==='claro'||t==='vivo')document.documentElement.setAttribute('data-tema',t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="wrap">
+  <h1>📋 CLASIFICADOR DE PEDIDOS <span>·</span> LM Málaga<button class="tema-toggle" id="temaBtn" onclick="cicloTema()" title="Cambiar tema">🌙</button></h1>
+  <div class="sub">Pega los pedidos en su transporte · se ordenan por tienda</div>
+
+  <div class="zonas" id="zonas"></div>
+
+  <!-- PEDIDOS PARCIALES -->
+  <div class="parcial-box">
+    <button class="parcial-toggle" id="parcialToggle" onclick="toggleParcial()">➕ Añadir pedido parcial (solo algunas direcciones)</button>
+    <div class="parcial-form" id="parcialForm">
+      <div class="pf-row">
+        <div class="campo"><label>Nº pedido</label><input type="text" id="pfPed" inputmode="numeric" placeholder="Ej: 260483"></div>
+        <div class="campo"><label>Transporte</label>
+          <select id="pfTransporte"></select>
+        </div>
+        <button class="btn sec mini" onclick="buscarDirecciones()">🔍 Buscar direcciones</button>
+        <span class="estado" id="pfEstado"></span>
+      </div>
+      <div class="dirs-box" id="dirsBox"></div>
+    </div>
+    <div class="parciales-lista" id="parcialesLista"></div>
+  </div>
+
+  <div class="acciones">
+    <button class="btn" id="btnClasificar" onclick="clasificar()">Clasificar</button>
+    <button class="btn" id="btnImportar" onclick="importar()" style="background:var(--grn)" disabled>⬇ Importar al sistema</button>
+    <button class="btn sec" onclick="limpiar()">Limpiar</button>
+    <span class="estado" id="estado"></span>
+  </div>
+
+  <div id="forzables"></div>
+
+  <div class="parcial-box" id="forzarBox" style="display:none">
+    <div class="pf-row">
+      <span style="font-size:13px;font-weight:700">↩ Forzar <span id="forzarPedNum"></span></span>
+      <span class="estado" id="forzarEstado"></span>
+      <button class="btn sec mini" onclick="cerrarForzar()">Cancelar</button>
+      <button class="btn mini" onclick="conBoton(this, () => confirmarForzar())">Confirmar forzado</button>
+    </div>
+    <div class="dirs-box" id="forzarDirs"></div>
+  </div>
+
+  <div id="colisiones"></div>
+  <div id="avisos"></div>
+  <div class="resultado" id="resultado"></div>
+</div>
+
+<script>
+// === TEMA (claro / oscuro / vivo) — mismo mecanismo que Index.html/Dashboard.html ===
+const TEMAS = ['oscuro', 'claro', 'vivo'];
+const TEMA_ICONS = { oscuro: '🌙', claro: '☀️', vivo: '⚡' };
+function temaActual() { return document.documentElement.getAttribute('data-tema') || 'oscuro'; }
+function aplicarTema(t) {
+  if (t === 'oscuro') document.documentElement.removeAttribute('data-tema');
+  else document.documentElement.setAttribute('data-tema', t);
+  try { localStorage.setItem('lm_tema', t); } catch (e) {}
+  const btn = document.getElementById('temaBtn');
+  if (btn) btn.textContent = TEMA_ICONS[t];
+}
+function cicloTema() {
+  const idx = TEMAS.indexOf(temaActual());
+  aplicarTema(TEMAS[(idx + 1) % TEMAS.length]);
+}
+(function() { const btn = document.getElementById('temaBtn'); if (btn) btn.textContent = TEMA_ICONS[temaActual()]; })();
+
+// Bloquea doble-envío en botones de acciones que ESCRIBEN (crear carga, alta
+// manual, masivos...): deshabilita + pinta .btn-cargando (spinner) mientras
+// dura la llamada async, y lo restaura pase lo que pase (éxito o error). Uso:
+// onclick="conBoton(this, () => crearCarga())" -- crearCarga sigue haciendo
+// su propio manejo de errores/toast igual que antes, esto solo evita que un
+// segundo clic mientras la primera petición sigue en vuelo dispare otra.
+async function conBoton(btn, fn) {
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.classList.add('btn-cargando');
+  try { return await fn(); }
+  finally { btn.disabled = false; btn.classList.remove('btn-cargando'); }
+}
+
+const TRANSPORTES = ['Transporte','Instalaciones','PRO','Remansur'];
+let parciales = [];          // [{ped, transporte, dirs:[...], total}]
+let tiendaColisiones = null; // tienda global elegida para resolver duplicados
+let pedidoBuscado = null;    // resultado de obtenerPedido
+let omitidosForzablesActuales = []; // [{ped, tienda, transporte, estadoLabel}]
+let forzando = null;                // {ped, tienda} mientras el selector está abierto
+
+// Pintar las 4 zonas
+document.getElementById('zonas').innerHTML = TRANSPORTES.map(t => `
+  <div class="zona ${t}">
+    <h3><i></i>${t}</h3>
+    <textarea id="ta_${t}" placeholder="Pega aquí los nº de pedido…" oninput="contar('${t}')"></textarea>
+    <div class="cuenta" id="cuenta_${t}">0 pedidos</div>
+  </div>`).join('');
+document.getElementById('pfTransporte').innerHTML = TRANSPORTES.map(t=>`<option value="${t}">${t}</option>`).join('');
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function numerosDe(t){ return (document.getElementById('ta_'+t).value||'').split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean); }
+function contar(t){
+  document.getElementById('cuenta_'+t).textContent = numerosDe(t).length + ' pedidos';
+  // Bug real 2026-09-02: Importar usaba la foto congelada de la última
+  // Clasificar aunque se editaran las cajas después -- el pedido 289451 se
+  // movió de caja pero se importó como si siguiera en Remansur, sin ningún
+  // aviso. Cualquier edición tras clasificar invalida la foto y obliga a
+  // re-clasificar antes de poder importar (mismo patrón que ya usa limpiar()).
+  window._ultimaClasificacion = null;
+  document.getElementById('btnImportar').disabled = true;
+}
+
+// ---- PARCIALES ----
+function toggleParcial(){
+  document.getElementById('parcialForm').classList.toggle('abierto');
+}
+function buscarDirecciones(){
+  const ped = document.getElementById('pfPed').value.trim();
+  if (!ped){ document.getElementById('pfEstado').textContent='Escribe un nº de pedido.'; return; }
+  document.getElementById('pfEstado').textContent = 'Buscando…';
+  google.script.run
+    .withSuccessHandler(onDirecciones)
+    .withFailureHandler(e=>{document.getElementById('pfEstado').textContent='Error: '+e.message;})
+    .obtenerPedido(ped);
+}
+function onDirecciones(data){
+  pedidoBuscado = data;
+  const box = document.getElementById('dirsBox');
+  if (!data){ document.getElementById('pfEstado').textContent='No encontrado.'; box.classList.remove('show'); return; }
+  document.getElementById('pfEstado').textContent = data.tiendas.length>1 ? ('⚠ en varias tiendas: '+data.tiendas.join(', ')) : ('Tienda: '+data.tienda);
+  box.innerHTML = `<div class="dirs-tools">
+      <span>${data.dirs.length} direcciones</span>
+      <button onclick="marcarDirs(true)">Todas</button>
+      <button onclick="marcarDirs(false)">Ninguna</button>
+    </div>` + data.dirs.map((d,i)=>`
+    <label class="dir-item">
+      <input type="checkbox" class="dir-chk" value="${esc(d.dir)}">
+      <span class="d">${esc(d.dir)}</span><span class="ds">${esc(d.des)}</span>
+    </label>`).join('') + `
+    <button class="btn mini" style="margin-top:10px" onclick="anadirParcial()">Añadir parcial</button>`;
+  box.classList.add('show');
+}
+function marcarDirs(v){ document.querySelectorAll('.dir-chk').forEach(c=>c.checked=v); }
+function anadirParcial(){
+  if (!pedidoBuscado) return;
+  const dirs = [...document.querySelectorAll('.dir-chk:checked')].map(c=>c.value);
+  if (!dirs.length){ document.getElementById('pfEstado').textContent='Marca al menos una dirección.'; return; }
+  const transporte = document.getElementById('pfTransporte').value;
+  parciales = parciales.filter(p=>!(p.ped===pedidoBuscado.ped && p.transporte===transporte)); // evita duplicar
+  parciales.push({ ped: pedidoBuscado.ped, transporte, dirs, total: pedidoBuscado.dirs.length });
+  renderParciales();
+  // limpiar form
+  document.getElementById('dirsBox').classList.remove('show');
+  document.getElementById('pfPed').value='';
+  document.getElementById('pfEstado').textContent='✓ Parcial añadido';
+  pedidoBuscado=null;
+}
+function quitarParcial(i){ parciales.splice(i,1); renderParciales(); }
+function renderParciales(){
+  const cont = document.getElementById('parcialesLista');
+  cont.innerHTML = parciales.map((p,i)=>`
+    <div class="parcial-chip">
+      <span class="num">${esc(p.ped)}</span>
+      <span class="tag-parcial">parcial</span>
+      <span>${esc(p.transporte)} · ${p.dirs.length}/${p.total} direcciones</span>
+      <button class="quitar" onclick="quitarParcial(${i})">Quitar</button>
+    </div>`).join('');
+}
+
+// ---- FORZAR OMITIDOS POR ESTADO TERMINAL ----
+function renderForzables(lista) {
+  const cont = document.getElementById('forzables');
+  if (!lista.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = `<div class="colision-box">
+    <h4>↩ ${lista.length} pedido(s) omitido(s) por estado -- se pueden forzar</h4>
+    <div class="lista" style="display:flex;flex-direction:column;gap:6px">` +
+    lista.map(f => `<span class="parcial-chip">
+        <span class="num">${esc(f.ped)}</span>
+        <span>${esc(f.tienda)} · ${esc(f.estadoLabel)} · ${esc(f.transporte)}</span>
+        <button class="btn sec mini" onclick="abrirForzar('${esc(f.ped)}','${esc(f.tienda)}')">↩ Forzar</button>
+      </span>`).join('') +
+    `</div>
+  </div>`;
+}
+function abrirForzar(ped, tienda) {
+  document.getElementById('forzarPedNum').textContent = ped;
+  document.getElementById('forzarEstado').textContent = 'Buscando direcciones…';
+  document.getElementById('forzarDirs').classList.remove('show');
+  document.getElementById('forzarDirs').innerHTML = '';
+  document.getElementById('forzarBox').style.display = 'block';
+  forzando = null;
+  google.script.run
+    .withSuccessHandler(data => onDireccionesForzar(ped, tienda, data))
+    .withFailureHandler(e => { document.getElementById('forzarEstado').textContent = 'Error: ' + e.message; })
+    .obtenerPedido(ped, tienda);
+}
+function onDireccionesForzar(ped, tienda, data) {
+  if (!data || !data.dirs.length) {
+    document.getElementById('forzarEstado').textContent = 'Ya no está en el inventario Pyxis -- no se puede forzar.';
+    return;
+  }
+  forzando = { ped: ped, tienda: tienda };
+  document.getElementById('forzarEstado').textContent = data.dirs.length + ' direcciones disponibles';
+  const box = document.getElementById('forzarDirs');
+  box.innerHTML = `<div class="dirs-tools">
+      <span>${data.dirs.length} direcciones</span>
+      <button onclick="marcarDirsForzar(true)">Todas</button>
+      <button onclick="marcarDirsForzar(false)">Ninguna</button>
+    </div>` + data.dirs.map(d => `
+    <label class="dir-item">
+      <input type="checkbox" class="dir-chk-forzar" value="${esc(d.dir)}" checked>
+      <span class="d">${esc(d.dir)}</span><span class="ds">${esc(d.des)}</span>
+    </label>`).join('');
+  box.classList.add('show');
+}
+function marcarDirsForzar(v) { document.querySelectorAll('.dir-chk-forzar').forEach(c => c.checked = v); }
+function cerrarForzar() {
+  document.getElementById('forzarBox').style.display = 'none';
+  document.getElementById('forzarDirs').classList.remove('show');
+  forzando = null;
+}
+function confirmarForzar() {
+  if (!forzando) return;
+  const dirsSel = [...document.querySelectorAll('.dir-chk-forzar:checked')].map(c => c.value);
+  if (!dirsSel.length) { document.getElementById('forzarEstado').textContent = 'Marca al menos una dirección.'; return; }
+  if (!confirm('¿Forzar reimportación de ' + forzando.ped + '? Sus líneas actuales se sustituirán por estas ' + dirsSel.length + ' dirección(es) y volverá a Pendiente.')) return;
+  document.getElementById('forzarEstado').textContent = 'Forzando…';
+  google.script.run
+    .withSuccessHandler(onForzado)
+    .withFailureHandler(e => { document.getElementById('forzarEstado').textContent = 'Error: ' + e.message; })
+    .importarClasificacion({}, { forzados: [{ ped: forzando.ped, tienda: forzando.tienda, dirsSel: dirsSel }] });
+}
+function onForzado(res) {
+  cerrarForzar();
+  let msg;
+  if (res.forzadosOk && res.forzadosOk.length) {
+    msg = '✓ Forzado: ' + res.forzadosOk.join(', ');
+    omitidosForzablesActuales = omitidosForzablesActuales.filter(f => res.forzadosOk.indexOf(f.ped) === -1);
+  } else if (res.forzadosError && res.forzadosError.length) {
+    msg = '✗ ' + res.forzadosError.map(f => f.ped + ' (' + f.motivo + ')').join(', ');
+  } else {
+    msg = 'Sin cambios.';
+  }
+  document.getElementById('estado').textContent = msg;
+  renderForzables(omitidosForzablesActuales);
+}
+
+// ---- LIMPIAR ----
+function limpiar(){
+  TRANSPORTES.forEach(t => { document.getElementById('ta_'+t).value=''; contar(t); });
+  parciales = []; tiendaColisiones = null; renderParciales();
+  document.getElementById('resultado').innerHTML='';
+  document.getElementById('avisos').innerHTML='';
+  document.getElementById('colisiones').innerHTML='';
+  document.getElementById('estado').textContent='';
+  window._ultimaClasificacion = null;
+  document.getElementById('btnImportar').disabled = true;
+  omitidosForzablesActuales = [];
+  document.getElementById('forzables').innerHTML = '';
+  cerrarForzar();
+}
+
+// ---- CLASIFICAR ----
+function clasificar(){
+  const payload = {}; let total = 0;
+  TRANSPORTES.forEach(t => { payload[t] = numerosDe(t); total += payload[t].length; });
+  if (!total && !parciales.length){ document.getElementById('estado').textContent='Pega algún pedido primero.'; return; }
+  document.getElementById('btnClasificar').disabled = true;
+  document.getElementById('btnImportar').disabled = true;
+  document.getElementById('estado').textContent = 'Buscando en inventarios… (puede tardar unos segundos)';
+  window._ultimoPayload = payload;
+  google.script.run
+    .withSuccessHandler(onResultado)
+    .withFailureHandler(e=>{document.getElementById('btnClasificar').disabled=false;document.getElementById('estado').textContent='Error: '+e.message;})
+    .clasificarPedidos(payload, { tiendaColisiones: tiendaColisiones, parciales: parciales });
+}
+function onResultado(data){
+  document.getElementById('btnClasificar').disabled = false;
+  document.getElementById('estado').textContent = '✓ Clasificado';
+  renderColisiones(data.colisiones||[]);
+  render(data);
+  // Habilitar importación con el mismo payload/opciones que se clasificó
+  window._ultimaClasificacion = { payload: window._ultimoPayload, opciones: { tiendaColisiones: tiendaColisiones, parciales: parciales } };
+  document.getElementById('btnImportar').disabled = false;
+}
+function aplicarTiendaColision(){
+  const sel = document.getElementById('selColision');
+  if (!sel || !sel.value) return;
+  tiendaColisiones = sel.value;
+  clasificar();
+}
+function renderColisiones(col){
+  const cont = document.getElementById('colisiones');
+  if (!col.length){ cont.innerHTML=''; return; }
+  const tiendas = [...new Set(col.reduce((a,c)=>a.concat(c.tiendas),[]))].sort();
+  const peds = [...new Set(col.map(c=>c.ped))];
+  cont.innerHTML = `<div class="colision-box">
+    <h4>⚠ ${peds.length} pedido(s) en varias tiendas</h4>
+    <div class="lista">${peds.map(esc).join(', ')} — aparecen en: ${tiendas.map(esc).join(' / ')}</div>
+    <div class="controles">
+      <span style="font-size:12px;color:var(--tx2)">¿De qué tienda son?</span>
+      <select id="selColision">
+        <option value="">— elegir tienda —</option>
+        ${tiendas.map(t=>`<option value="${esc(t)}"${tiendaColisiones===t?' selected':''}>${esc(t)}</option>`).join('')}
+      </select>
+      <button class="aplicar" onclick="aplicarTiendaColision()">Aplicar</button>
+    </div>
+  </div>`;
+}
+
+// ---- RENDER RESULTADO ---- (independiente, testeable sin backend)
+function render(data){
+  const av = document.getElementById('avisos');
+  av.innerHTML = (data.avisos && data.avisos.length) ? '<div class="avisos">⚠ ' + data.avisos.map(esc).join('\n⚠ ') + '</div>' : '';
+  const cont = document.getElementById('resultado');
+  let html = '';
+  TRANSPORTES.forEach(t => {
+    const r = (data.resultado && data.resultado[t]) || { encontrados:[], noEncontrados:[] };
+    if (!r.encontrados.length && !r.noEncontrados.length) return;
+    html += `<div class="tseccion"><h2>${t} <span class="badge">${r.encontrados.length} pedidos</span></h2>`;
+    if (r.encontrados.length){
+      let tiendaActual = null;
+      r.encontrados.forEach(p => {
+        if (p.tienda !== tiendaActual){
+          if (tiendaActual !== null) html += '</div>';
+          tiendaActual = p.tienda;
+          const n = r.encontrados.filter(x=>x.tienda===p.tienda).length;
+          html += `<div class="tgrupo"><div class="tienda-h"><span class="chip ${esc(p.tienda)}">${esc(p.tienda)}</span> ${n} pedido${n!==1?'s':''}</div>`;
+        }
+        const meta = p.parcial ? `parcial ${p.nUbic}/${p.totalUbic} ubic · ${p.nLin} líneas` : `${p.nUbic} ubic · ${p.nLin} líneas`;
+        html += `<div class="pfila"><span class="num">${esc(p.ped)}</span>${p.parcial?'<span class="tag-parcial">parcial</span>':''}<span class="meta">${meta}</span></div>`;
+      });
+      html += '</div>';
+    } else { html += '<div class="vacio">Sin pedidos encontrados</div>'; }
+    if (r.noEncontrados.length){ html += `<div class="noenc">✗ No encontrados: ${r.noEncontrados.map(esc).join(', ')}</div>`; }
+    html += '</div>';
+  });
+  cont.innerHTML = html || '<div class="vacio">Sin resultados</div>';
+}
+
+// ---- IMPORTAR AL SISTEMA ----
+function importar(){
+  if (!window._ultimaClasificacion){ document.getElementById('estado').textContent='Clasifica primero.'; return; }
+  if (!confirm('¿Importar al sistema los pedidos clasificados? Los que ya existan y no estén entregados se respetan.')) return;
+  const btn = document.getElementById('btnImportar');
+  btn.disabled = true;
+  document.getElementById('estado').textContent = 'Importando al sistema…';
+  google.script.run
+    .withSuccessHandler(res => {
+      btn.disabled = false;
+      let msg = '✓ Importados ' + res.creados.length + ' · omitidos ' + res.omitidos.length + ' · no encontrados ' + res.noEncontrados.length;
+      if (res.colisiones && res.colisiones.length) msg += ' · ' + res.colisiones.length + ' colisiones sin resolver';
+      if (res.creados.length) msg += '\n✓ ' + res.creados.join(', ');
+      if (res.omitidos.length) msg += '\n✗ Omitidos: ' + res.omitidos.join(', ');
+      document.getElementById('estado').textContent = msg;
+      omitidosForzablesActuales = res.omitidosForzables || [];
+      renderForzables(omitidosForzablesActuales);
+    })
+    .withFailureHandler(e => {
+      btn.disabled = false;
+      document.getElementById('estado').textContent = 'Error: ' + e.message;
+    })
+    .importarClasificacion(window._ultimaClasificacion.payload, window._ultimaClasificacion.opciones);
+}
+</script>
+</body>
+</html>
