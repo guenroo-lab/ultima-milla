@@ -876,6 +876,7 @@ const TABS_OPERARIO = [
   { id: 'app',      label: '📦 Operario' },
   { id: 'revisar',  label: '⚠️ Revisar' },
   { id: 'muelles',  label: '🚧 Muelles' },
+  { id: 'incidencias', label: '🚨 Incidencias' },
   { id: 'buscar',   label: '🔍 Buscar' }
 ];
 const TABS_ADMIN = [
@@ -887,6 +888,7 @@ const TABS_ADMIN = [
   { id: 'dash',     label: '📊 Pantalla' },
   { id: 'storedelivery', label: '🗂️ Store Delivery' },
   { id: 'visas',    label: '🛂 Visas' },
+  { id: 'incidencias', label: '🚨 Incidencias' },
   { id: 'buscar',   label: '🔍 Buscar' }
 ];
 function tabsActuales() { return MODO_PANEL === 'admin' ? TABS_ADMIN : TABS_OPERARIO; }
@@ -908,6 +910,7 @@ function switchTab(t) {
   else if (t === 'dash') renderDashboard();
   else if (t === 'storedelivery') pantallaStoreDelivery();
   else if (t === 'visas') pantallaVisas();
+  else if (t === 'incidencias') pantallaIncidencias();
   else if (t === 'buscar') pantallaBuscar();
   else if (t === 'revisar') pantallaRevisarPedidos();
   else if (estado.operario) pantallaRaiz();
@@ -5218,6 +5221,84 @@ Write-Host "Puedes cerrar esta ventana."
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast('Programa descargado — ábrelo con doble clic para procesar los pedidos', 'ok');
+}
+
+// === INCIDENCIAS (admin da de alta, operario gestiona) ===
+const TIPOS_INCIDENCIA = [
+  { id: 'SALDADA', label: 'Mercancía saldada en plataforma' },
+  { id: 'DEVOLUCION', label: 'Devolución' },
+  { id: 'DEVOLUCION_TIENDA', label: 'Petición de devolución a tienda' },
+  { id: 'OTRA', label: 'Incidencia varia / otros' }
+];
+const ESTADOS_INCIDENCIA_LABEL = { PENDIENTE: 'Pendiente', EN_CURSO: 'En curso', RESUELTA: 'Resuelta', CANCELADA: 'Cancelada' };
+const ESTADOS_INCIDENCIA_COLOR = { PENDIENTE: 'var(--gold)', EN_CURSO: 'var(--cyan)', RESUELTA: 'var(--grn)', CANCELADA: 'var(--tx3)' };
+
+function urlFotoIncidencia(fileId) {
+  return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w800';
+}
+
+// Redimensiona UNA foto en un <canvas> (lado mayor ~1280px, calidad ~0.7)
+// antes de mandarla — una foto de móvil sin comprimir (3-8 MB) puede
+// reventar el payload o el watchdog de 20s de gas().
+function redimensionarFoto(file) {
+  return new Promise(function(resolve, reject) {
+    const lector = new FileReader();
+    lector.onerror = function() { reject(new Error('No se pudo leer la foto')); };
+    lector.onload = function() {
+      const img = new Image();
+      img.onerror = function() { reject(new Error('No se pudo procesar la foto')); };
+      img.onload = function() {
+        const maxLado = 1280;
+        let w = img.width, h = img.height;
+        if (w > maxLado || h > maxLado) {
+          if (w > h) { h = Math.round(h * maxLado / w); w = maxLado; }
+          else { w = Math.round(w * maxLado / h); h = maxLado; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve({ base64: dataUrl.split(',')[1], mime: 'image/jpeg' });
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(file);
+  });
+}
+// Lee hasta 4 fotos de un <input type="file" multiple> ya redimensionadas,
+// lista para mandar a gas(). Una foto que falle se omite (con aviso) en vez
+// de bloquear el resto.
+async function capturarFotosRedimensionadas(inputEl) {
+  const archivos = Array.prototype.slice.call((inputEl && inputEl.files) || []).slice(0, 4);
+  const fotos = [];
+  for (let i = 0; i < archivos.length; i++) {
+    try { fotos.push(await redimensionarFoto(archivos[i])); }
+    catch (e) { toast('Una foto no se pudo procesar y se ha omitido', 'err'); }
+  }
+  return fotos;
+}
+
+function pantallaIncidencias() {
+  if (MODO_PANEL === 'admin') pantallaIncidenciasAdmin();
+  else pantallaIncidenciasOperario();
+}
+
+// Lista de tarjetas compartida entre admin/operario/histórico.
+function renderListaIncidencias(contId, lista) {
+  const cont = document.getElementById(contId);
+  if (!cont) return;
+  if (!lista.length) { cont.innerHTML = '<div class="empty-state"><div class="icon">🚨</div>No hay incidencias.</div>'; return; }
+  cont.innerHTML = lista.map(inc => {
+    const tipoLabel = (TIPOS_INCIDENCIA.find(t => t.id === inc.tipo) || {}).label || inc.tipo;
+    return `<div class="section-card" style="padding:12px 14px;margin-bottom:8px;cursor:pointer" onclick="pantallaDetalleIncidencia('${esc(inc.id)}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <b style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px">${esc(inc.ped)}</b>
+        <span style="font-size:11px;font-weight:700;color:${ESTADOS_INCIDENCIA_COLOR[inc.estado] || 'var(--tx2)'}">${esc(ESTADOS_INCIDENCIA_LABEL[inc.estado] || inc.estado)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:4px">${esc(tipoLabel)} · ${esc(inc.tienda)}${inc.prioridad === 'URGENTE' ? ' · <span style="color:var(--red);font-weight:700">🔴 URGENTE</span>' : ''}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:4px">${inc.asignado ? '👤 ' + esc(inc.asignado) : '🔓 Sin asignar'}</div>
+    </div>`;
+  }).join('');
 }
 </script>
 </body>
