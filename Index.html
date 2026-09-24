@@ -5300,6 +5300,126 @@ function renderListaIncidencias(contId, lista) {
     </div>`;
   }).join('');
 }
+
+let INC_PEDIDO_SEL = null; // pedido elegido en el formulario de alta (vía buscarPedido)
+
+function pantallaIncidenciasAdmin() {
+  bread();
+  app().innerHTML = `
+    <div class="step-title">🚨 Incidencias</div>
+    <div class="section-card">
+      <button class="btn-submit" onclick="toggleFormNuevaIncidencia()">➕ Nueva incidencia</button>
+      <div id="formNuevaIncidencia" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="section-card" style="padding:10px 14px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="incFiltroEstado" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:130px">
+          <option value="">Todos los estados</option>
+          ${Object.keys(ESTADOS_INCIDENCIA_LABEL).map(e => `<option value="${e}">${esc(ESTADOS_INCIDENCIA_LABEL[e])}</option>`).join('')}
+        </select>
+        <select id="incFiltroTienda" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:130px">
+          <option value="">Todas las tiendas</option>
+          ${TIENDAS.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+        </select>
+        <select id="incFiltroTipo" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:150px">
+          <option value="">Todos los tipos</option>
+          ${TIPOS_INCIDENCIA.map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join('')}
+        </select>
+        <select id="incFiltroAsignado" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:150px">
+          <option value="">Todos los operarios</option>
+          <option value="__SIN__">🔓 Sin asignar</option>
+          ${OPERARIOS.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div id="listaIncidenciasAdmin"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+  `;
+  cargarIncidenciasAdmin();
+}
+
+async function cargarIncidenciasAdmin() {
+  const filtros = {};
+  const estadoSel = document.getElementById('incFiltroEstado').value;
+  const tiendaSel = document.getElementById('incFiltroTienda').value;
+  const tipoSel = document.getElementById('incFiltroTipo').value;
+  const asignadoSel = document.getElementById('incFiltroAsignado').value;
+  if (estadoSel) filtros.estado = estadoSel;
+  if (tiendaSel) filtros.tienda = tiendaSel;
+  if (tipoSel) filtros.tipo = tipoSel;
+  if (asignadoSel === '__SIN__') filtros.asignado = '';
+  else if (asignadoSel) filtros.asignado = asignadoSel;
+  let lista;
+  try { lista = await gas('listarIncidencias', filtros); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  renderListaIncidencias('listaIncidenciasAdmin', lista);
+}
+
+function toggleFormNuevaIncidencia() {
+  const cont = document.getElementById('formNuevaIncidencia');
+  const abrir = cont.style.display === 'none';
+  cont.style.display = abrir ? 'block' : 'none';
+  if (abrir) renderFormNuevaIncidencia();
+}
+
+function renderFormNuevaIncidencia() {
+  INC_PEDIDO_SEL = null;
+  const cont = document.getElementById('formNuevaIncidencia');
+  cont.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="text" id="incBuscarPed" inputmode="numeric" placeholder="Nº de pedido" style="flex:1">
+      <button class="btn-opc" style="flex:0 0 auto;justify-content:center" onclick="buscarPedidoNuevaIncidencia()">Buscar</button>
+    </div>
+    <div id="incPedidoInfo" style="font-size:12px;color:var(--tx2);margin-bottom:10px"></div>
+    <div id="incRestoForm" style="display:none">
+      <div class="field" style="margin-bottom:8px"><label>Tipo</label>
+        <select id="incTipo">${TIPOS_INCIDENCIA.map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>Prioridad</label>
+        <select id="incPrioridad"><option value="NORMAL">Normal</option><option value="URGENTE">🔴 Urgente</option></select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>Asignar a</label>
+        <select id="incAsignado"><option value="">Sin asignar (pool)</option>${OPERARIOS.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>Indicaciones</label>
+        <textarea id="incTexto" placeholder="Explica qué hay que hacer…"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>Fotos (opcional, máx. 4)</label>
+        <input type="file" id="incFotos" accept="image/*" multiple>
+      </div>
+      <button class="btn-submit" onclick="conBoton(this, () => enviarNuevaIncidencia())">✓ Crear incidencia</button>
+    </div>`;
+}
+
+async function buscarPedidoNuevaIncidencia() {
+  const num = document.getElementById('incBuscarPed').value.trim();
+  const info = document.getElementById('incPedidoInfo');
+  if (!num) { toast('Escribe un número de pedido', 'err'); return; }
+  info.textContent = 'Buscando…';
+  let p;
+  try { p = await gas('buscarPedido', num); }
+  catch (e) { info.textContent = 'Error: ' + e.message; return; }
+  if (!p) { info.textContent = '✗ Pedido no encontrado'; document.getElementById('incRestoForm').style.display = 'none'; INC_PEDIDO_SEL = null; return; }
+  INC_PEDIDO_SEL = p;
+  info.innerHTML = `✓ <b>${esc(p.ped)}</b> · ${esc(p.tienda)} · ${esc(FLUJO_LABELS[p.flujo] || p.flujo)}`;
+  document.getElementById('incRestoForm').style.display = 'block';
+}
+
+async function enviarNuevaIncidencia() {
+  if (!INC_PEDIDO_SEL) { toast('Busca primero el pedido', 'err'); return; }
+  const texto = document.getElementById('incTexto').value.trim();
+  if (!texto) { toast('Escribe las indicaciones', 'err'); return; }
+  const tipo = document.getElementById('incTipo').value;
+  const prioridad = document.getElementById('incPrioridad').value;
+  const asignado = document.getElementById('incAsignado').value;
+  const fotos = await capturarFotosRedimensionadas(document.getElementById('incFotos'));
+  let r;
+  try { r = await gas('crearIncidencia', INC_PEDIDO_SEL.id, tipo, prioridad, asignado, texto, fotos); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Incidencia creada', 'ok');
+  document.getElementById('formNuevaIncidencia').style.display = 'none';
+  cargarIncidenciasAdmin();
+}
 </script>
 </body>
 </html>
