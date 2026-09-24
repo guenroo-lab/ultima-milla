@@ -5420,6 +5420,155 @@ async function enviarNuevaIncidencia() {
   document.getElementById('formNuevaIncidencia').style.display = 'none';
   cargarIncidenciasAdmin();
 }
+
+async function pantallaIncidenciasOperario() {
+  bread();
+  app().innerHTML = `
+    <div class="step-title">🚨 Incidencias</div>
+    <div class="step-title" style="font-size:14px;margin-top:14px">🔵 Asignadas a mí</div>
+    <div id="incMias"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+    <div class="step-title" style="font-size:14px;margin-top:18px">🔓 Sin asignar</div>
+    <div id="incPool"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+    <button class="back-btn" style="margin-top:16px" onclick="pantallaIncidenciasHistorico()">🗂️ Ver histórico (resueltas/canceladas)</button>
+  `;
+  await cargarIncidenciasOperario();
+}
+
+async function cargarIncidenciasOperario() {
+  let mias, pool;
+  try {
+    mias = await gas('listarIncidencias', { asignado: estado.operario });
+    pool = await gas('listarIncidencias', { asignado: '' });
+  } catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  mias = mias.filter(i => i.estado === 'PENDIENTE' || i.estado === 'EN_CURSO');
+  pool = pool.filter(i => i.estado === 'PENDIENTE' || i.estado === 'EN_CURSO');
+  renderListaIncidencias('incMias', mias);
+  renderListaIncidencias('incPool', pool);
+}
+
+async function pantallaIncidenciasHistorico() {
+  bread();
+  app().innerHTML = `<div class="step-title">🗂️ Histórico de incidencias</div><div id="incHistorico"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+    <button class="back-btn" style="margin-top:16px" onclick="pantallaIncidenciasOperario()">← Volver</button>`;
+  let lista;
+  try { lista = await gas('listarIncidencias', {}); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  lista = lista.filter(i => i.estado === 'RESUELTA' || i.estado === 'CANCELADA');
+  renderListaIncidencias('incHistorico', lista);
+}
+
+let INC_DETALLE = null;
+
+async function pantallaDetalleIncidencia(id) {
+  bread();
+  app().innerHTML = '<div class="empty-state"><div class="icon">⏳</div>Cargando…</div>';
+  let r;
+  try { r = await gas('obtenerIncidenciaConComentarios', id); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); volverListaIncidencias(); return; }
+  INC_DETALLE = r;
+  renderDetalleIncidencia();
+}
+
+function volverListaIncidencias() {
+  if (MODO_PANEL === 'admin') pantallaIncidenciasAdmin();
+  else pantallaIncidenciasOperario();
+}
+
+function renderDetalleIncidencia() {
+  const inc = INC_DETALLE.incidencia;
+  const tipoLabel = (TIPOS_INCIDENCIA.find(t => t.id === inc.tipo) || {}).label || inc.tipo;
+  const cerrada = inc.estado === 'RESUELTA' || inc.estado === 'CANCELADA';
+  let html = `
+    <button class="back-btn" onclick="volverListaIncidencias()">← Volver</button>
+    <div class="step-title">${esc(inc.ped)} · ${esc(inc.tienda)}</div>
+    <div class="section-card" style="padding:12px 14px">
+      <div style="font-size:12px;color:var(--tx2)">${esc(tipoLabel)}${inc.prioridad === 'URGENTE' ? ' · <span style="color:var(--red);font-weight:700">🔴 URGENTE</span>' : ''}</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:2px">Estado: <b style="color:${ESTADOS_INCIDENCIA_COLOR[inc.estado] || 'var(--tx2)'}">${esc(ESTADOS_INCIDENCIA_LABEL[inc.estado] || inc.estado)}</b> · ${inc.asignado ? '👤 ' + esc(inc.asignado) : '🔓 Sin asignar'}</div>
+    </div>
+    <div id="incHilo" style="margin:12px 0">
+      ${INC_DETALLE.comentarios.map(c => `
+        <div class="section-card" style="padding:10px 12px;margin-bottom:8px;${c.rol === 'admin' ? 'border-left:3px solid var(--gold)' : 'border-left:3px solid var(--cyan)'}">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx3)">
+            <b>${c.rol === 'admin' ? '🗂️ ' : '👤 '}${esc(c.autor)}</b><span>${esc(new Date(c.ts).toLocaleString('es-ES'))}</span>
+          </div>
+          ${c.texto ? `<div style="font-size:13px;margin-top:6px;white-space:pre-wrap">${esc(c.texto)}</div>` : ''}
+          ${c.fotos && c.fotos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${c.fotos.map(fid => `<img src="${urlFotoIncidencia(fid)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${urlFotoIncidencia(fid)}','_blank')">`).join('')}</div>` : ''}
+        </div>`).join('')}
+    </div>`;
+  if (!cerrada) {
+    html += `
+    <div class="section-card">
+      <div class="field" style="margin-bottom:8px"><label>Nuevo comentario</label><textarea id="incComentarioTexto" placeholder="Escribe una actualización…"></textarea></div>
+      <div class="field" style="margin-bottom:10px"><label>Fotos (opcional, máx. 4)</label><input type="file" id="incComentarioFotos" accept="image/*" multiple></div>
+      <button class="btn-submit" onclick="conBoton(this, () => enviarComentarioIncidencia())">💬 Añadir comentario</button>
+    </div>`;
+    if (MODO_PANEL === 'admin') {
+      html += `
+      <div class="section-card" style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="incReasignarSel" style="flex:1;min-width:150px">
+          <option value="">Sin asignar (pool)</option>
+          ${OPERARIOS.map(o => `<option value="${esc(o)}" ${o === inc.asignado ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+        <button class="btn-opc" style="flex:0 0 auto;justify-content:center" onclick="conBoton(this, () => reasignarIncidenciaUI())">🔁 Reasignar</button>
+        <button class="btn-opc" style="flex:0 0 auto;justify-content:center;background:var(--red);color:#fff" onclick="cancelarIncidenciaUI()">⛔ Cancelar incidencia</button>
+      </div>`;
+    } else {
+      html += `<button class="btn-submit" style="background:var(--grn)" onclick="resolverIncidenciaUI()">✅ Resolver incidencia</button>`;
+    }
+  }
+  app().innerHTML = html;
+}
+
+async function enviarComentarioIncidencia() {
+  const texto = document.getElementById('incComentarioTexto').value.trim();
+  const fotos = await capturarFotosRedimensionadas(document.getElementById('incComentarioFotos'));
+  if (!texto && !fotos.length) { toast('Escribe algo o adjunta una foto', 'err'); return; }
+  const autor = MODO_PANEL === 'admin' ? 'Administración' : estado.operario;
+  const rol = MODO_PANEL === 'admin' ? 'admin' : 'operario';
+  let r;
+  try { r = await gas('anadirComentarioIncidencia', INC_DETALLE.incidencia.id, autor, rol, texto, fotos); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Comentario añadido', 'ok');
+  pantallaDetalleIncidencia(INC_DETALLE.incidencia.id);
+}
+
+async function resolverIncidenciaUI() {
+  const texto = prompt('Nota final de la resolución:');
+  if (texto === null) return;
+  const t = texto.trim();
+  if (!t) { toast('Escribe una nota para resolver', 'err'); return; }
+  let r;
+  try { r = await gas('cambiarEstadoIncidencia', INC_DETALLE.incidencia.id, 'RESUELTA', estado.operario, 'operario', t, []); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Incidencia resuelta', 'ok');
+  pantallaIncidenciasOperario();
+}
+
+async function cancelarIncidenciaUI() {
+  const texto = prompt('Motivo de la cancelación:');
+  if (texto === null) return;
+  const t = texto.trim();
+  if (!t) { toast('Escribe un motivo para cancelar', 'err'); return; }
+  let r;
+  try { r = await gas('cambiarEstadoIncidencia', INC_DETALLE.incidencia.id, 'CANCELADA', 'Administración', 'admin', t, []); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Incidencia cancelada', 'ok');
+  pantallaIncidenciasAdmin();
+}
+
+async function reasignarIncidenciaUI() {
+  const nuevo = document.getElementById('incReasignarSel').value;
+  let r;
+  try { r = await gas('reasignarIncidencia', INC_DETALLE.incidencia.id, nuevo); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Reasignada', 'ok');
+  pantallaDetalleIncidencia(INC_DETALLE.incidencia.id);
+}
 </script>
 </body>
 </html>
