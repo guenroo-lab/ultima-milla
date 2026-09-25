@@ -31,7 +31,7 @@ const CONFIG = {
   POSICIONES_SILUETA: 16,      // posiciones por silueta (valor por defecto)
   POSICIONES_POR_SILUETA: { E: 27, F: 27 }, // excepciones: E y F son más grandes que las demás (valores por defecto — ver posicionesDeSilueta())
   SILUETAS: ['A', 'B', 'C', 'D', 'E', 'F'], // G se retiró (2026-07-06): sin uso real; si hiciera falta más espacio se usan zonas libres/ficticias en vez de una silueta física más
-  TIENDAS: ['Málaga', 'Marbella', 'Mijas'],
+  TIENDAS: ['Málaga', 'Marbella', 'Mijas', 'Granada'], // Granada añadida 2026-09-24: pedidos de la 043, sin silueta física propia -- ver CC.Granada (cerrarPedidoAGranada, pantallaCCGranada)
 
   // Código numérico de tienda (prefijo de idPedido y nombre de archivo de inventario)
   CODIGO_TIENDA: { 'Marbella': '014', 'Málaga': '036', 'Granada': '043', 'Mijas': '279' },

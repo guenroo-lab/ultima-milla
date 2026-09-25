@@ -1189,6 +1189,42 @@ function cerrarPedidoSinSilueta(idPedido, operario) {
 }
 
 /**
+ * Cierra un pedido de Granada directamente a CC.Granada: silueta ficticia fija
+ * (sin fila en OCUPACION_SILUETAS, sin límite de capacidad -- mismo patrón que
+ * "Recogidas"/"Ya Cargados"), pero A DIFERENCIA de esas dos SÍ guarda los
+ * soportes (número + formato), porque este es el cierre normal del operario
+ * con artículos reales preparados, no una reconversión admin posterior de un
+ * pedido ya resuelto. posIni/posFin se guardan a '0' (no null), mismo
+ * convenio que usa registrar_pedido_manual para "sin posiciones reales".
+ * Granada no ocupa silueta física -- ver docs/superpowers/specs/2026-09-24-cc-granada-design.md.
+ */
+function cerrarPedidoAGranada(idPedido, operario, soportes) {
+  var pedidos = leerHoja('PEDIDOS');
+  var pedido = pedidos.find(function(p) { return p.id === idPedido; });
+  if (!pedido) return { ok: false, error: 'Pedido no encontrado' };
+  if (pedido.tienda !== 'Granada') return { ok: false, error: 'Esta acción es solo para pedidos de Granada' };
+  var cambiosCierreGranada = {
+    estado: 'COMPLETADO_LISTO',
+    silueta: 'CC.Granada',
+    posIni: '0',
+    posFin: '0',
+    soportes: soportes || [],
+    operario: operario || pedido.operario,
+    actualizado: new Date().toISOString()
+  };
+  actualizarFila('PEDIDOS', pedido._fila, cambiosCierreGranada);
+  var totalSoportes = (soportes || []).reduce(function(s, x) { return s + (Number(x && x.cant) || 0); }, 0);
+  logActividad('CIERRE_CC_GRANADA', 'Pedido ' + pedido.ped + ' cerrado a CC.Granada · ' + totalSoportes + 'sop', operario);
+  marcarResumenObsoleto();
+  sincronizarPedidoSupabase_(pedido, cambiosCierreGranada);
+  // Mismo Excel externo de Disponibilidad que ya rellenan las otras 3 tiendas
+  // al cerrar en silueta real (ver cerrarPedido) -- DISPONIBILIDAD_PESTANA_POR_TIENDA
+  // ya tiene la pestaña DISP_GRANADA reservada.
+  try { actualizarPaletsBultosDisponibilidad(pedido, soportes); } catch (eD) {}
+  return { ok: true };
+}
+
+/**
  * REPARACIÓN PUNTUAL (bug histórico): antes de este arreglo, cerrarPedidoSinSilueta
  * dejaba el pedido en PARCIAL_LISTO (no terminal) en vez de CERRADO_SIN_SILUETA,
  * así que cualquier pedido cerrado así antes de este despliegue sigue "vivo"

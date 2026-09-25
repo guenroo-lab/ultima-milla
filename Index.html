@@ -2240,6 +2240,7 @@ async function pantallaCerrarPedido() {
     return;
   }
 
+  const esGranada = p.tienda === 'Granada';
   app().innerHTML = `
     <div class="step-title">Pedido ${esc(p.ped)} listo · ${prep}/${total} artículos preparados${noSale?` · ${noSale} faltantes`:''}</div>
     <div class="section-card">
@@ -2249,6 +2250,13 @@ async function pantallaCerrarPedido() {
       <button class="btn-add" onclick="addSop()">+ Añadir tipo de soporte</button>
       <div class="calc-box" id="calcBox" style="display:none"></div>
     </div>
+    ${esGranada ? `
+    <div class="section-card" style="border-color:rgba(227,6,19,.3)">
+      <h3><span class="step-num">2</span> CC.Granada</h3>
+      <p style="font-size:12px;color:var(--tx2)">Pedido de Granada · no ocupa hueco en silueta. Se acumula en CC.Granada hasta sacarlo en un transporte.</p>
+    </div>
+    <button class="btn-submit" onclick="conBoton(this, () => confirmarCierreGranada())">🏗️ Cerrar a CC.Granada</button>
+    ` : `
     <div class="section-card">
       <h3><span class="step-num">2</span> Silueta</h3>
       <p style="font-size:12px;color:var(--tx2);margin-bottom:10px">Posición automática · primer hueco libre</p>
@@ -2274,8 +2282,9 @@ async function pantallaCerrarPedido() {
       </div>
     </div>
     <button class="btn-submit" id="btnCerrar" disabled onclick="conBoton(this, () => confirmarCierre())">✓ Cerrar pedido y asignar</button>
+    `}
   `;
-  pintarSiluetas();
+  if (!esGranada) pintarSiluetas();
   // Precarga soportes ya guardados (p.ej. pedido "Desmarcado" de su silueta
   // para recolocar: conserva soportes, solo limpia silueta/posIni/posFin --
   // ver _liberarPedidoDeSiluetaInterno en Backend.gs). Sin esto el operario
@@ -2575,6 +2584,16 @@ async function confirmarCierreSinSilueta() {
   if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
   PEDIDOS_CACHE = PEDIDOS_CACHE.filter(p => p.id !== estado.pedidoActivo.id);
   toast('✓ Cerrado · todo faltante · sin silueta', 'ok');
+  setTimeout(volverTrasPedido, 1100);
+}
+
+async function confirmarCierreGranada() {
+  let r;
+  try { r = await gas('cerrarPedidoAGranada', estado.pedidoActivo.id, estado.operario, cierre.soportes); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  PEDIDOS_CACHE = PEDIDOS_CACHE.filter(p => p.id !== estado.pedidoActivo.id);
+  toast('✓ Cerrado · CC.Granada', 'ok');
   setTimeout(volverTrasPedido, 1100);
 }
 

@@ -115,7 +115,7 @@ function _exportarCargaTaisa_(agencia, fechaIso, items) {
     var codigo = codigoTienda(item.tienda);
     return [
       agenciaMayus, fechaCorta, codigo ? Number(codigo) : item.tienda, item.ped,
-      datos.esPro === true ? 'PRO' : (datos.esPro === false ? 'PARTICULAR' : ''),
+      datos.esPro === true ? 'PRO' : 'PARTICULAR', // a petición del usuario: solo PRO si consta explícitamente en pedidos_totales.csv (esPro===true) -- cualquier otro caso, incluido pedido no encontrado en el CSV, se asume PARTICULAR (antes dejaba la celda en blanco)
       datos.ciudad || '', datos.cp || '', datos.peso || '', ''
     ];
   });
