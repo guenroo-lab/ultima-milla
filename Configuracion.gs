@@ -15,6 +15,16 @@ function setSpreadsheetId(id) {
   PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', id);
 }
 
+// === CARPETA DE DRIVE PARA FOTOS DE INCIDENCIAS ===
+// Se crea automáticamente la primera vez que se sube una foto. Guardada en
+// PropertiesService, mismo patrón que SPREADSHEET_ID.
+function getIncidenciasFolderId() {
+  return PropertiesService.getScriptProperties().getProperty('INCIDENCIAS_FOLDER_ID');
+}
+function setIncidenciasFolderId(id) {
+  PropertiesService.getScriptProperties().setProperty('INCIDENCIAS_FOLDER_ID', id);
+}
+
 // === WEBHOOK GOOGLE CHAT (incidencias) ===
 // Pega aquí la URL del webhook del espacio de Chat.
 // Cómo obtenerla: Espacio de Chat → Aplicaciones e integraciones → Webhooks → Añadir
@@ -180,7 +190,9 @@ const HOJAS = {
   LOG: 'LOG_ACTIVIDAD',
   VISAS: 'VISAS',
   RETIRADAS: 'RETIRADAS_STOCK',
-  HIST_TRANSP: 'HISTORIAL_TRANSPORTISTA'
+  HIST_TRANSP: 'HISTORIAL_TRANSPORTISTA',
+  INCIDENCIAS: 'INCIDENCIAS',
+  INC_COMENTARIOS: 'INCIDENCIAS_COMENTARIOS'
 };
 
 // === COLUMNAS DE CADA HOJA (orden exacto) ===
@@ -195,5 +207,7 @@ const COLUMNAS = {
   LOG: ['ts', 'tipo', 'detalle', 'usuario'],
   VISAS: ['id', 'ped', 'tienda', 'estado', 'numeroCarga', 'fechaAlta', 'fechaResuelta', 'motivoAlerta'],
   RETIRADAS: ['fecha', 'tienda', 'pedido', 'cliente', 'resultado', 'code', 'ts'],
-  HIST_TRANSP: ['id', 'idPedido', 'ped', 'tienda', 'transportista', 'flujo', 'evento', 'fecha']
+  HIST_TRANSP: ['id', 'idPedido', 'ped', 'tienda', 'transportista', 'flujo', 'evento', 'fecha'],
+  INCIDENCIAS: ['id', 'idPedido', 'ped', 'tienda', 'tipo', 'prioridad', 'estado', 'asignado', 'creadoPor', 'creadoTs', 'actualizado'],
+  INC_COMENTARIOS: ['id', 'idIncidencia', 'autor', 'rol', 'texto', 'fotos', 'ts']
 };

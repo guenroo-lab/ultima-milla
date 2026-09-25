@@ -876,6 +876,7 @@ const TABS_OPERARIO = [
   { id: 'app',      label: '📦 Operario' },
   { id: 'revisar',  label: '⚠️ Revisar' },
   { id: 'muelles',  label: '🚧 Muelles' },
+  { id: 'incidencias', label: '🚨 Incidencias' },
   { id: 'buscar',   label: '🔍 Buscar' }
 ];
 const TABS_ADMIN = [
@@ -887,6 +888,7 @@ const TABS_ADMIN = [
   { id: 'dash',     label: '📊 Pantalla' },
   { id: 'storedelivery', label: '🗂️ Store Delivery' },
   { id: 'visas',    label: '🛂 Visas' },
+  { id: 'incidencias', label: '🚨 Incidencias' },
   { id: 'buscar',   label: '🔍 Buscar' }
 ];
 function tabsActuales() { return MODO_PANEL === 'admin' ? TABS_ADMIN : TABS_OPERARIO; }
@@ -908,6 +910,7 @@ function switchTab(t) {
   else if (t === 'dash') renderDashboard();
   else if (t === 'storedelivery') pantallaStoreDelivery();
   else if (t === 'visas') pantallaVisas();
+  else if (t === 'incidencias') pantallaIncidencias();
   else if (t === 'buscar') pantallaBuscar();
   else if (t === 'revisar') pantallaRevisarPedidos();
   else if (estado.operario) pantallaRaiz();
@@ -5237,6 +5240,353 @@ Write-Host "Puedes cerrar esta ventana."
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast('Programa descargado — ábrelo con doble clic para procesar los pedidos', 'ok');
+}
+
+// === INCIDENCIAS (admin da de alta, operario gestiona) ===
+const TIPOS_INCIDENCIA = [
+  { id: 'SALDADA', label: 'Mercancía saldada en plataforma' },
+  { id: 'DEVOLUCION', label: 'Devolución' },
+  { id: 'DEVOLUCION_TIENDA', label: 'Petición de devolución a tienda' },
+  { id: 'OTRA', label: 'Incidencia varia / otros' }
+];
+const ESTADOS_INCIDENCIA_LABEL = { PENDIENTE: 'Pendiente', EN_CURSO: 'En curso', RESUELTA: 'Resuelta', CANCELADA: 'Cancelada' };
+const ESTADOS_INCIDENCIA_COLOR = { PENDIENTE: 'var(--gold)', EN_CURSO: 'var(--cyan)', RESUELTA: 'var(--grn)', CANCELADA: 'var(--tx3)' };
+
+function urlFotoIncidencia(fileId) {
+  return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w800';
+}
+
+// Redimensiona UNA foto en un <canvas> (lado mayor ~1280px, calidad ~0.7)
+// antes de mandarla — una foto de móvil sin comprimir (3-8 MB) puede
+// reventar el payload o el watchdog de 20s de gas().
+function redimensionarFoto(file) {
+  return new Promise(function(resolve, reject) {
+    const lector = new FileReader();
+    lector.onerror = function() { reject(new Error('No se pudo leer la foto')); };
+    lector.onload = function() {
+      const img = new Image();
+      img.onerror = function() { reject(new Error('No se pudo procesar la foto')); };
+      img.onload = function() {
+        const maxLado = 1280;
+        let w = img.width, h = img.height;
+        if (w > maxLado || h > maxLado) {
+          if (w > h) { h = Math.round(h * maxLado / w); w = maxLado; }
+          else { w = Math.round(w * maxLado / h); h = maxLado; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve({ base64: dataUrl.split(',')[1], mime: 'image/jpeg' });
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(file);
+  });
+}
+// Lee hasta 4 fotos de un <input type="file" multiple> ya redimensionadas,
+// lista para mandar a gas(). Una foto que falle se omite (con aviso) en vez
+// de bloquear el resto.
+async function capturarFotosRedimensionadas(inputEl) {
+  const archivos = Array.prototype.slice.call((inputEl && inputEl.files) || []).slice(0, 4);
+  const fotos = [];
+  for (let i = 0; i < archivos.length; i++) {
+    try { fotos.push(await redimensionarFoto(archivos[i])); }
+    catch (e) { toast('Una foto no se pudo procesar y se ha omitido', 'err'); }
+  }
+  return fotos;
+}
+
+function pantallaIncidencias() {
+  if (MODO_PANEL === 'admin') pantallaIncidenciasAdmin();
+  else pantallaIncidenciasOperario();
+}
+
+// Lista de tarjetas compartida entre admin/operario/histórico.
+function renderListaIncidencias(contId, lista) {
+  const cont = document.getElementById(contId);
+  if (!cont) return;
+  if (!lista.length) { cont.innerHTML = '<div class="empty-state"><div class="icon">🚨</div>No hay incidencias.</div>'; return; }
+  cont.innerHTML = lista.map(inc => {
+    const tipoLabel = (TIPOS_INCIDENCIA.find(t => t.id === inc.tipo) || {}).label || inc.tipo;
+    return `<div class="section-card" style="padding:12px 14px;margin-bottom:8px;cursor:pointer" onclick="pantallaDetalleIncidencia('${esc(inc.id)}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <b style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px">${esc(inc.ped)}</b>
+        <span style="font-size:11px;font-weight:700;color:${ESTADOS_INCIDENCIA_COLOR[inc.estado] || 'var(--tx2)'}">${esc(ESTADOS_INCIDENCIA_LABEL[inc.estado] || inc.estado)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:4px">${esc(tipoLabel)} · ${esc(inc.tienda)}${inc.prioridad === 'URGENTE' ? ' · <span style="color:var(--red);font-weight:700">🔴 URGENTE</span>' : ''}</div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:4px">${inc.asignado ? '👤 ' + esc(inc.asignado) : '🔓 Sin asignar'}</div>
+    </div>`;
+  }).join('');
+}
+
+let INC_PEDIDO_SEL = null; // pedido elegido en el formulario de alta (vía buscarPedido)
+
+function pantallaIncidenciasAdmin() {
+  bread();
+  app().innerHTML = `
+    <div class="step-title">🚨 Incidencias</div>
+    <div class="section-card">
+      <button class="btn-submit" onclick="toggleFormNuevaIncidencia()">➕ Nueva incidencia</button>
+      <div id="formNuevaIncidencia" style="display:none;margin-top:12px"></div>
+    </div>
+    <div class="section-card" style="padding:10px 14px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="incFiltroEstado" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:130px">
+          <option value="">Todos los estados</option>
+          ${Object.keys(ESTADOS_INCIDENCIA_LABEL).map(e => `<option value="${e}">${esc(ESTADOS_INCIDENCIA_LABEL[e])}</option>`).join('')}
+        </select>
+        <select id="incFiltroTienda" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:130px">
+          <option value="">Todas las tiendas</option>
+          ${TIENDAS.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('')}
+        </select>
+        <select id="incFiltroTipo" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:150px">
+          <option value="">Todos los tipos</option>
+          ${TIPOS_INCIDENCIA.map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join('')}
+        </select>
+        <select id="incFiltroAsignado" onchange="cargarIncidenciasAdmin()" style="flex:1;min-width:150px">
+          <option value="">Todos los operarios</option>
+          <option value="__SIN__">🔓 Sin asignar</option>
+          ${OPERARIOS.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div id="listaIncidenciasAdmin"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+  `;
+  cargarIncidenciasAdmin();
+}
+
+async function cargarIncidenciasAdmin() {
+  const filtros = {};
+  const estadoSel = document.getElementById('incFiltroEstado').value;
+  const tiendaSel = document.getElementById('incFiltroTienda').value;
+  const tipoSel = document.getElementById('incFiltroTipo').value;
+  const asignadoSel = document.getElementById('incFiltroAsignado').value;
+  if (estadoSel) filtros.estado = estadoSel;
+  if (tiendaSel) filtros.tienda = tiendaSel;
+  if (tipoSel) filtros.tipo = tipoSel;
+  if (asignadoSel === '__SIN__') filtros.asignado = '';
+  else if (asignadoSel) filtros.asignado = asignadoSel;
+  let lista;
+  try { lista = await gas('listarIncidencias', filtros); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  renderListaIncidencias('listaIncidenciasAdmin', lista);
+}
+
+function toggleFormNuevaIncidencia() {
+  const cont = document.getElementById('formNuevaIncidencia');
+  const abrir = cont.style.display === 'none';
+  cont.style.display = abrir ? 'block' : 'none';
+  if (abrir) renderFormNuevaIncidencia();
+}
+
+function renderFormNuevaIncidencia() {
+  INC_PEDIDO_SEL = null;
+  const cont = document.getElementById('formNuevaIncidencia');
+  cont.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input type="text" id="incBuscarPed" inputmode="numeric" placeholder="Nº de pedido" style="flex:1">
+      <button class="btn-opc" style="flex:0 0 auto;justify-content:center" onclick="buscarPedidoNuevaIncidencia()">Buscar</button>
+    </div>
+    <div id="incPedidoInfo" style="font-size:12px;color:var(--tx2);margin-bottom:10px"></div>
+    <div id="incRestoForm" style="display:none">
+      <div class="field" style="margin-bottom:8px"><label>Tipo</label>
+        <select id="incTipo">${TIPOS_INCIDENCIA.map(t => `<option value="${t.id}">${esc(t.label)}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>Prioridad</label>
+        <select id="incPrioridad"><option value="NORMAL">Normal</option><option value="URGENTE">🔴 Urgente</option></select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>Asignar a</label>
+        <select id="incAsignado"><option value="">Sin asignar (pool)</option>${OPERARIOS.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>
+      </div>
+      <div class="field" style="margin-bottom:8px"><label>Indicaciones</label>
+        <textarea id="incTexto" placeholder="Explica qué hay que hacer…"></textarea>
+      </div>
+      <div class="field" style="margin-bottom:10px"><label>Fotos (opcional, máx. 4)</label>
+        <input type="file" id="incFotos" accept="image/*" multiple>
+      </div>
+      <button class="btn-submit" onclick="conBoton(this, () => enviarNuevaIncidencia())">✓ Crear incidencia</button>
+    </div>`;
+}
+
+async function buscarPedidoNuevaIncidencia() {
+  const num = document.getElementById('incBuscarPed').value.trim();
+  const info = document.getElementById('incPedidoInfo');
+  if (!num) { toast('Escribe un número de pedido', 'err'); return; }
+  info.textContent = 'Buscando…';
+  let p;
+  try { p = await gas('buscarPedido', num); }
+  catch (e) { info.textContent = 'Error: ' + e.message; return; }
+  if (!p) { info.textContent = '✗ Pedido no encontrado'; document.getElementById('incRestoForm').style.display = 'none'; INC_PEDIDO_SEL = null; return; }
+  INC_PEDIDO_SEL = p;
+  info.innerHTML = `✓ <b>${esc(p.ped)}</b> · ${esc(p.tienda)} · ${esc(FLUJO_LABELS[p.flujo] || p.flujo)}`;
+  document.getElementById('incRestoForm').style.display = 'block';
+}
+
+async function enviarNuevaIncidencia() {
+  if (!INC_PEDIDO_SEL) { toast('Busca primero el pedido', 'err'); return; }
+  const texto = document.getElementById('incTexto').value.trim();
+  if (!texto) { toast('Escribe las indicaciones', 'err'); return; }
+  const tipo = document.getElementById('incTipo').value;
+  const prioridad = document.getElementById('incPrioridad').value;
+  const asignado = document.getElementById('incAsignado').value;
+  const fotos = await capturarFotosRedimensionadas(document.getElementById('incFotos'));
+  let r;
+  try { r = await gas('crearIncidencia', INC_PEDIDO_SEL.id, tipo, prioridad, asignado, texto, fotos); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Incidencia creada', 'ok');
+  document.getElementById('formNuevaIncidencia').style.display = 'none';
+  cargarIncidenciasAdmin();
+}
+
+async function pantallaIncidenciasOperario() {
+  bread();
+  app().innerHTML = `
+    <div class="step-title">🚨 Incidencias</div>
+    <div class="step-title" style="font-size:14px;margin-top:14px">🔵 Asignadas a mí</div>
+    <div id="incMias"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+    <div class="step-title" style="font-size:14px;margin-top:18px">🔓 Sin asignar</div>
+    <div id="incPool"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+    <button class="back-btn" style="margin-top:16px" onclick="pantallaIncidenciasHistorico()">🗂️ Ver histórico (resueltas/canceladas)</button>
+  `;
+  await cargarIncidenciasOperario();
+}
+
+async function cargarIncidenciasOperario() {
+  let mias, pool;
+  try {
+    mias = await gas('listarIncidencias', { asignado: estado.operario });
+    pool = await gas('listarIncidencias', { asignado: '' });
+  } catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  mias = mias.filter(i => i.estado === 'PENDIENTE' || i.estado === 'EN_CURSO');
+  pool = pool.filter(i => i.estado === 'PENDIENTE' || i.estado === 'EN_CURSO');
+  renderListaIncidencias('incMias', mias);
+  renderListaIncidencias('incPool', pool);
+}
+
+async function pantallaIncidenciasHistorico() {
+  bread();
+  app().innerHTML = `<div class="step-title">🗂️ Histórico de incidencias</div><div id="incHistorico"><div class="empty-state"><div class="icon">⏳</div>Cargando…</div></div>
+    <button class="back-btn" style="margin-top:16px" onclick="pantallaIncidenciasOperario()">← Volver</button>`;
+  let lista;
+  try { lista = await gas('listarIncidencias', {}); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  lista = lista.filter(i => i.estado === 'RESUELTA' || i.estado === 'CANCELADA');
+  renderListaIncidencias('incHistorico', lista);
+}
+
+let INC_DETALLE = null;
+
+async function pantallaDetalleIncidencia(id) {
+  bread();
+  app().innerHTML = '<div class="empty-state"><div class="icon">⏳</div>Cargando…</div>';
+  let r;
+  try { r = await gas('obtenerIncidenciaConComentarios', id); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); volverListaIncidencias(); return; }
+  INC_DETALLE = r;
+  renderDetalleIncidencia();
+}
+
+function volverListaIncidencias() {
+  if (MODO_PANEL === 'admin') pantallaIncidenciasAdmin();
+  else pantallaIncidenciasOperario();
+}
+
+function renderDetalleIncidencia() {
+  const inc = INC_DETALLE.incidencia;
+  const tipoLabel = (TIPOS_INCIDENCIA.find(t => t.id === inc.tipo) || {}).label || inc.tipo;
+  const cerrada = inc.estado === 'RESUELTA' || inc.estado === 'CANCELADA';
+  let html = `
+    <button class="back-btn" onclick="volverListaIncidencias()">← Volver</button>
+    <div class="step-title">${esc(inc.ped)} · ${esc(inc.tienda)}</div>
+    <div class="section-card" style="padding:12px 14px">
+      <div style="font-size:12px;color:var(--tx2)">${esc(tipoLabel)}${inc.prioridad === 'URGENTE' ? ' · <span style="color:var(--red);font-weight:700">🔴 URGENTE</span>' : ''}</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:2px">Estado: <b style="color:${ESTADOS_INCIDENCIA_COLOR[inc.estado] || 'var(--tx2)'}">${esc(ESTADOS_INCIDENCIA_LABEL[inc.estado] || inc.estado)}</b> · ${inc.asignado ? '👤 ' + esc(inc.asignado) : '🔓 Sin asignar'}</div>
+    </div>
+    <div id="incHilo" style="margin:12px 0">
+      ${INC_DETALLE.comentarios.map(c => `
+        <div class="section-card" style="padding:10px 12px;margin-bottom:8px;${c.rol === 'admin' ? 'border-left:3px solid var(--gold)' : 'border-left:3px solid var(--cyan)'}">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx3)">
+            <b>${c.rol === 'admin' ? '🗂️ ' : '👤 '}${esc(c.autor)}</b><span>${esc(new Date(c.ts).toLocaleString('es-ES'))}</span>
+          </div>
+          ${c.texto ? `<div style="font-size:13px;margin-top:6px;white-space:pre-wrap">${esc(c.texto)}</div>` : ''}
+          ${c.fotos && c.fotos.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${c.fotos.map(fid => `<img src="${urlFotoIncidencia(fid)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;cursor:pointer" onclick="window.open('${urlFotoIncidencia(fid)}','_blank')">`).join('')}</div>` : ''}
+        </div>`).join('')}
+    </div>`;
+  if (!cerrada) {
+    html += `
+    <div class="section-card">
+      <div class="field" style="margin-bottom:8px"><label>Nuevo comentario</label><textarea id="incComentarioTexto" placeholder="Escribe una actualización…"></textarea></div>
+      <div class="field" style="margin-bottom:10px"><label>Fotos (opcional, máx. 4)</label><input type="file" id="incComentarioFotos" accept="image/*" multiple></div>
+      <button class="btn-submit" onclick="conBoton(this, () => enviarComentarioIncidencia())">💬 Añadir comentario</button>
+    </div>`;
+    if (MODO_PANEL === 'admin') {
+      html += `
+      <div class="section-card" style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="incReasignarSel" style="flex:1;min-width:150px">
+          <option value="">Sin asignar (pool)</option>
+          ${OPERARIOS.map(o => `<option value="${esc(o)}" ${o === inc.asignado ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>
+        <button class="btn-opc" style="flex:0 0 auto;justify-content:center" onclick="conBoton(this, () => reasignarIncidenciaUI())">🔁 Reasignar</button>
+        <button class="btn-opc" style="flex:0 0 auto;justify-content:center;background:var(--red);color:#fff" onclick="cancelarIncidenciaUI()">⛔ Cancelar incidencia</button>
+      </div>`;
+    } else {
+      html += `<button class="btn-submit" style="background:var(--grn)" onclick="resolverIncidenciaUI()">✅ Resolver incidencia</button>`;
+    }
+  }
+  app().innerHTML = html;
+}
+
+async function enviarComentarioIncidencia() {
+  const texto = document.getElementById('incComentarioTexto').value.trim();
+  const fotos = await capturarFotosRedimensionadas(document.getElementById('incComentarioFotos'));
+  if (!texto && !fotos.length) { toast('Escribe algo o adjunta una foto', 'err'); return; }
+  const autor = MODO_PANEL === 'admin' ? 'Administración' : estado.operario;
+  const rol = MODO_PANEL === 'admin' ? 'admin' : 'operario';
+  let r;
+  try { r = await gas('anadirComentarioIncidencia', INC_DETALLE.incidencia.id, autor, rol, texto, fotos); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Comentario añadido', 'ok');
+  pantallaDetalleIncidencia(INC_DETALLE.incidencia.id);
+}
+
+async function resolverIncidenciaUI() {
+  const texto = prompt('Nota final de la resolución:');
+  if (texto === null) return;
+  const t = texto.trim();
+  if (!t) { toast('Escribe una nota para resolver', 'err'); return; }
+  let r;
+  try { r = await gas('cambiarEstadoIncidencia', INC_DETALLE.incidencia.id, 'RESUELTA', estado.operario, 'operario', t, []); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Incidencia resuelta', 'ok');
+  pantallaIncidenciasOperario();
+}
+
+async function cancelarIncidenciaUI() {
+  const texto = prompt('Motivo de la cancelación:');
+  if (texto === null) return;
+  const t = texto.trim();
+  if (!t) { toast('Escribe un motivo para cancelar', 'err'); return; }
+  let r;
+  try { r = await gas('cambiarEstadoIncidencia', INC_DETALLE.incidencia.id, 'CANCELADA', 'Administración', 'admin', t, []); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Incidencia cancelada', 'ok');
+  pantallaIncidenciasAdmin();
+}
+
+async function reasignarIncidenciaUI() {
+  const nuevo = document.getElementById('incReasignarSel').value;
+  let r;
+  try { r = await gas('reasignarIncidencia', INC_DETALLE.incidencia.id, nuevo); }
+  catch (e) { toast('Error: ' + e.message, 'err'); return; }
+  if (!r.ok) { toast('Error: ' + r.error, 'err'); return; }
+  toast('✓ Reasignada', 'ok');
+  pantallaDetalleIncidencia(INC_DETALLE.incidencia.id);
 }
 </script>
 </body>
